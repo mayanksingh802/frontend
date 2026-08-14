@@ -1,4 +1,4 @@
-import { Home, Server } from "lucide-react";
+import { Home, Server, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { permissions } from "@/app/config/permissions";
 import type { Role } from "@/app/types/auth/auth";
@@ -34,6 +34,11 @@ export const navigationItems: NavigationItem[] = [
     href: "/dashboard/system-settings",
     icon: Server,
     allowedRoles: permissions.systemSettings,
+  },
+  {
+    label: "Operations",
+    href: "/dashboard/operations",
+    icon: Settings,
   },
 ];
 
@@ -96,5 +101,13 @@ export const sectionNavigation: Record<
         href: "/dashboard/system-settings/key-value",
       },
     ],
+  },
+
+  "/dashboard/settings": {
+    title: "Settings",
+  },
+
+  "/dashboard/operations": {
+    title: "Settings",
   },
 };

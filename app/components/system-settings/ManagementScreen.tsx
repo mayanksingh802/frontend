@@ -109,9 +109,9 @@ export default function ManagementScreen<T>({
     };
     const csv = [
       visibleColumns.map((column) => escapeCsvValue(column.label)).join(","),
-      ...filteredItems.map((item) =>
+      ...filteredItems.map((item, index) =>
         visibleColumns
-          .map((column) => escapeCsvValue(column.exportValue?.(item)))
+          .map((column) => escapeCsvValue(column.exportValue?.(item, index)))
           .join(",")
       ),
     ].join("\n");

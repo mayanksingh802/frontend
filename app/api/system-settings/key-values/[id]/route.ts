@@ -3,7 +3,10 @@ import { getSession } from "@/app/lib/auth/session";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getSession();
 
   if (!session) {
@@ -13,6 +16,7 @@ export async function GET() {
     );
   }
 
+  const { id } = await params;
   const backendUrl = process.env.BACKEND_API_BASE_URL;
 
   if (!backendUrl) {
@@ -22,25 +26,43 @@ export async function GET() {
     );
   }
 
+  if (!id) {
+    return NextResponse.json(
+      { message: "Key value ID is required." },
+      { status: 400 }
+    );
+  }
+
   try {
+    const body = await request.json();
     const backendResponse = await fetch(
-      `${backendUrl}/tms/api/keyValue/all`,
+      `${backendUrl}/tms/api/keyValue/${encodeURIComponent(id)}`,
       {
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify(body),
         cache: "no-store",
       }
     );
 
+    const responseBody = await backendResponse.json().catch(() => null);
+
     if (!backendResponse.ok) {
       return NextResponse.json(
-        { message: "Unable to load key values." },
+        {
+          message: responseBody?.message ?? "Unable to update key value.",
+          ...(responseBody ?? {}),
+        },
         { status: backendResponse.status }
       );
     }
 
-    return NextResponse.json(await backendResponse.json());
+    return NextResponse.json(responseBody ?? {}, {
+      status: backendResponse.status,
+    });
   } catch {
     return NextResponse.json(
       { message: "Unable to reach the key value service." },
@@ -49,7 +71,10 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getSession();
 
   if (!session) {
@@ -59,6 +84,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const { id } = await params;
   const backendUrl = process.env.BACKEND_API_BASE_URL;
 
   if (!backendUrl) {
@@ -68,33 +94,38 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!id) {
+    return NextResponse.json(
+      { message: "Key value ID is required." },
+      { status: 400 }
+    );
+  }
+
   try {
-    const body = await request.json();
     const backendResponse = await fetch(
-      `${backendUrl}/tms/api/keyValue/add`,
+      `${backendUrl}/tms/api/keyValue/${encodeURIComponent(id)}`,
       {
-        method: "POST",
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        cache: "no-store",
       }
     );
 
-    const data = await backendResponse.json().catch(() => null);
+    const responseBody = await backendResponse.json().catch(() => null);
 
     if (!backendResponse.ok) {
       return NextResponse.json(
         {
-          message: data?.message ?? "Unable to add key value.",
-          ...(data ?? {}),
+          message: responseBody?.message ?? "Unable to delete key value.",
+          ...(responseBody ?? {}),
         },
         { status: backendResponse.status }
       );
     }
 
-    return NextResponse.json(data ?? {}, { status: 201 });
+    return new NextResponse(null, { status: backendResponse.status });
   } catch {
     return NextResponse.json(
       { message: "Unable to reach the key value service." },

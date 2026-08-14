@@ -7,9 +7,16 @@ import type { ManagementColumn } from "@/app/components/system-settings/Manageme
 import ManagementScreen from "@/app/components/system-settings/ManagementScreen";
 import StatusBadge from "@/app/components/system-settings/StatusBadge";
 import FormModal from "@/app/components/ui/FormModal";
+import Modal from "@/app/components/ui/Modal";
 import type { Module } from "@/app/types/system-settings/module";
 
 const moduleColumns: ManagementColumn<Module>[] = [
+  {
+    id: "id",
+    label: "SERIAL",
+    render: (_module, index) => (index ?? 0) + 1,
+    exportValue: (_module, index) => (index ?? 0) + 1,
+  },
   {
     id: "name",
     label: "Module Name",
@@ -45,6 +52,7 @@ export default function ModuleManagement() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [moduleToDelete, setModuleToDelete] = useState<Module | null>(null);
 
   const closeAddModal = () => {
     if (!isSaving) {
@@ -76,10 +84,7 @@ export default function ModuleManagement() {
   };
 
   const handleDelete = async (module: Module) => {
-    if (
-      isDeleting ||
-      !window.confirm(`Delete the module \"${module.name}\"? This cannot be undone.`)
-    ) {
+    if (isDeleting) {
       return;
     }
 
@@ -87,6 +92,7 @@ export default function ModuleManagement() {
       setIsDeleting(true);
       setDeleteError(null);
       await moduleService.deleteModule(module.id);
+      setModuleToDelete(null);
       await refresh();
     } catch (error) {
       setDeleteError(
@@ -158,7 +164,10 @@ export default function ModuleManagement() {
         setEditError(null);
         setEditingModule(module);
       }}
-      onDelete={handleDelete}
+      onDelete={(module) => {
+        setDeleteError(null);
+        setModuleToDelete(module);
+      }}
       onAdd={() => {
         setSaveError(null);
         setIsAddModalOpen(true);
@@ -224,6 +233,38 @@ export default function ModuleManagement() {
         </>
       )}
       </FormModal>
+
+      <Modal
+        title="Confirm Delete"
+        isOpen={Boolean(moduleToDelete)}
+        onClose={() => setModuleToDelete(null)}
+        footer={
+          <>
+            <button
+              type="button"
+              className="app-modal-cancel"
+              onClick={() => setModuleToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="app-modal-save"
+              onClick={() => moduleToDelete && handleDelete(moduleToDelete)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </>
+        }
+      >
+        <p>
+          Are you sure you want to delete the module{" "}
+          <strong>"{moduleToDelete?.name}"</strong>? This cannot be
+          undone.
+        </p>
+      </Modal>
     </>
   );
 }

@@ -6,8 +6,8 @@ import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 export interface ManagementColumn<T> {
   id: string;
   label: string;
-  render: (item: T) => ReactNode;
-  exportValue?: (item: T) => string | number | null | undefined;
+  render: (item: T, index?: number) => ReactNode;
+  exportValue?: (item: T, index?: number) => string | number | null | undefined;
 }
 
 interface ManagementTableProps<T> {
@@ -55,14 +55,14 @@ export default function ManagementTable<T>({
         </thead>
 
         <tbody>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const rowId = getRowId(item);
             const isMenuOpen = openMenuId === rowId;
 
             return (
               <tr key={rowId}>
                 {columns.map((column) => (
-                  <td key={column.id}>{column.render(item)}</td>
+                  <td key={column.id}>{column.render(item, index)}</td>
                 ))}
 
                 {hasActions && (
