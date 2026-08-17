@@ -7,6 +7,7 @@ import {
   serviceHubs,
   type ServiceHubItem,
 } from "@/app/config/service-hubs";
+import { useAuth } from "@/app/context/AuthContext";
 
 interface ServiceHubProps {
   hub: keyof typeof serviceHubs;
@@ -33,16 +34,21 @@ function ServiceCard({ service }: { service: ServiceHubItem }) {
 
 export default function ServiceHub({ hub }: ServiceHubProps) {
   const config = serviceHubs[hub];
+  const { hasAnyRole } = useAuth();
   const [query, setQuery] = useState("");
   const visibleServices = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
+    const allowedServices = config.services.filter(
+      (service) => !service.allowedRoles || hasAnyRole(service.allowedRoles),
+    );
+
     return normalizedQuery
-      ? config.services.filter((service) =>
+      ? allowedServices.filter((service) =>
           service.label.toLowerCase().includes(normalizedQuery)
         )
-      : config.services;
-  }, [config.services, query]);
+      : allowedServices;
+  }, [config.services, hasAnyRole, query]);
 
   return (
     <section className="service-hub">

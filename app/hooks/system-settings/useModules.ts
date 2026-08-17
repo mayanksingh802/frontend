@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { moduleService } from "@/app/services/system-settings/moduleService";
-import { Module } from "@/app/types/system-settings/module";
+import type { Module } from "@/app/types/system-settings/module";
+import { useListData } from "@/app/hooks/system-settings/useListData";
 
 interface UseModulesReturn {
   modules: Module[];
@@ -12,39 +13,20 @@ interface UseModulesReturn {
 }
 
 export function useModules(): UseModulesReturn {
-  const [modules, setModules] = useState<Module[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const fetchModules = useCallback(() => moduleService.getModules(), []);
 
-  const fetchModules = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await moduleService.getModules();
-
-      setModules(data);
-    } catch (error) {
+  const { items: modules, loading, error, refresh } = useListData(
+    fetchModules,
+    "Failed to load modules.",
+    (error) => {
       console.error("Failed to load modules:", error);
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load modules"
-      );
-    } finally {
-      setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchModules();
-  }, [fetchModules]);
+  );
 
   return {
     modules,
     loading,
     error,
-    refresh: fetchModules,
+    refresh,
   };
 }

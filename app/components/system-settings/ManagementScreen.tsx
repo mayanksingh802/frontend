@@ -20,6 +20,8 @@ interface ManagementScreenProps<T> {
   getSearchValues: (item: T) => Array<string | null | undefined>;
   emptyMessage: string;
   showActions?: boolean;
+  showHeader?: boolean;
+  showSearch?: boolean;
   onFilter?: () => void;
   onExport?: () => void;
   onAdd?: () => void;
@@ -40,6 +42,8 @@ export default function ManagementScreen<T>({
   getSearchValues,
   emptyMessage,
   showActions,
+  showHeader = true,
+  showSearch = true,
   onFilter,
   onExport,
   onAdd,
@@ -115,7 +119,24 @@ export default function ManagementScreen<T>({
           .join(",")
       ),
     ].join("\n");
-    const fileName = `${entityName.toLowerCase().replaceAll(" ", "-")}s.csv`;
+
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const dateStamp = [
+      pad(now.getDate()),
+      pad(now.getMonth() + 1),
+      now.getFullYear(),
+    ].join("-");
+    const timeStamp = [
+      pad(now.getHours()),
+      pad(now.getMinutes()),
+      pad(now.getSeconds()),
+    ].join(":");
+    const fileBaseName = entityName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const fileName = `${fileBaseName || "records"}-${dateStamp}-${timeStamp}.csv`;
     const url = URL.createObjectURL(
       new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" })
     );
@@ -129,20 +150,24 @@ export default function ManagementScreen<T>({
 
   return (
     <div className="module-management">
-      <div className="module-management-header">
-        <h1>{title}</h1>
-      </div>
+      {showHeader && (
+        <div className="module-management-header">
+          <h1>{title}</h1>
+        </div>
+      )}
 
       <div className="module-management-toolbar">
-        <div className="module-search">
-          <Search size={22} />
-          <input
-            type="search"
-            placeholder={`Search ${entityName.toLowerCase()}s`}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
+        {showSearch && (
+          <div className="module-search">
+            <Search size={22} />
+            <input
+              type="search"
+              placeholder={`Search ${entityName.toLowerCase()}s`}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        )}
 
         <ManagementToolbar
           entityName={entityName}

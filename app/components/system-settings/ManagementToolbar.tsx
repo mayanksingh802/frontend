@@ -147,15 +147,17 @@ export default function ManagementToolbar({
         <RefreshCw size={20} />
       </button>
 
-      <button
-        className="module-add-button"
-        type="button"
-        onClick={onAdd}
-        disabled={!onAdd}
-      >
-        <Plus size={21} />
-        Add {entityName}
-      </button>
+      {onAdd && (
+        <button
+          className="module-add-button"
+          type="button"
+          onClick={onAdd}
+          disabled={!onAdd}
+        >
+          <Plus size={21} />
+          Add {entityName}
+        </button>
+      )}
     </div>
   );
 }

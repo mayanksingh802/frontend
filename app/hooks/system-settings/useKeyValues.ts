@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { keyValueService } from "@/app/services/system-settings/keyValueService";
 import type { KeyValue } from "@/app/types/system-settings/keyValue";
+import { useListData } from "@/app/hooks/system-settings/useListData";
 
 interface UseKeyValuesReturn {
   keyValues: KeyValue[];
@@ -12,27 +13,12 @@ interface UseKeyValuesReturn {
 }
 
 export function useKeyValues(): UseKeyValuesReturn {
-  const [keyValues, setKeyValues] = useState<KeyValue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const fetchKeyValues = useCallback(() => keyValueService.getKeyValues(), []);
 
-  const fetchKeyValues = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setKeyValues(await keyValueService.getKeyValues());
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to load key values."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { items: keyValues, loading, error, refresh } = useListData(
+    fetchKeyValues,
+    "Failed to load key values."
+  );
 
-  useEffect(() => {
-    void fetchKeyValues();
-  }, [fetchKeyValues]);
-
-  return { keyValues, loading, error, refresh: fetchKeyValues };
+  return { keyValues, loading, error, refresh };
 }

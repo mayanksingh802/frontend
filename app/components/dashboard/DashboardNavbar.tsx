@@ -15,6 +15,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   sectionNavigation,
 } from "@/app/config/navigation";
+import { organizationSetupTopNavigation } from "@/app/config/organization-setup";
 import { useAuth } from "@/app/context/AuthContext";
 
 export default function DashboardNavbar() {
@@ -29,15 +30,7 @@ export default function DashboardNavbar() {
   const userEmail = user?.email ?? "";
   const isManageAccounts = pathname.startsWith("/admin/organization-setup");
   const manageSection = searchParams.get("section") ?? "organization-setup";
-  const manageNavigation = [
-    ["users", "Users"],
-    ["organization-setup", "Organization Setup"],
-    ["access-control", "User Access Control"],
-    ["manage-service", "Manage Service"],
-    ["automation", "Automation"],
-    ["approvals", "Approvals"],
-    ["subscription", "Subscription"],
-  ];
+  const manageNavigation = organizationSetupTopNavigation;
   const isServiceHub =
     pathname.startsWith("/dashboard/settings") ||
     pathname.startsWith("/dashboard/operations");

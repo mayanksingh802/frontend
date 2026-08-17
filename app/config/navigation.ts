@@ -35,11 +35,6 @@ export const navigationItems: NavigationItem[] = [
     icon: Server,
     allowedRoles: permissions.systemSettings,
   },
-  {
-    label: "Operations",
-    href: "/dashboard/operations",
-    icon: Settings,
-  },
 ];
 
 export const sectionNavigation: Record<

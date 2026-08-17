@@ -19,6 +19,8 @@ import {
   UserSquare,
   UsersRound,
 } from "lucide-react";
+import { permissions } from "@/app/config/permissions";
+import type { Role } from "@/app/types/auth/auth";
 
 export type ServiceHubTone = "green" | "blue" | "gold" | "slate";
 
@@ -27,6 +29,7 @@ export interface ServiceHubItem {
   icon: LucideIcon;
   tone: ServiceHubTone;
   href?: string;
+  allowedRoles?: Role[];
 }
 
 export interface ServiceHubConfig {
@@ -36,7 +39,13 @@ export interface ServiceHubConfig {
 }
 
 const sharedServices: ServiceHubItem[] = [
-  { label: "Manage Accounts", icon: UsersRound, tone: "green", href: "/admin/organization-setup" },
+  {
+    label: "Manage Accounts",
+    icon: UsersRound,
+    tone: "green",
+    href: "/admin/organization-setup",
+    allowedRoles: permissions.systemSettings,
+  },
   { label: "Leave Tracker", icon: CalendarClock, tone: "blue" },
   { label: "Time Tracker", icon: Clock3, tone: "gold" },
   { label: "Attendance", icon: UserCheck, tone: "green" },

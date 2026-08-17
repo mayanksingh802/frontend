@@ -169,21 +169,28 @@ export function AuthProvider({
     setUser(null);
   }, []);
 
+  const normalizeRole = useCallback((role: string) => role.trim().toUpperCase(), []);
+
   const hasRole = useCallback(
-    (role: Role) => user?.roles.includes(role) ?? false,
-    [user]
+    (role: Role) =>
+      user?.roles.some((item) => normalizeRole(item) === normalizeRole(role)) ?? false,
+    [user, normalizeRole]
   );
 
   const hasAnyRole = useCallback(
     (roles: Role[]) =>
-      user?.roles.some((role) => roles.includes(role)) ?? false,
-    [user]
+      user?.roles.some((role) =>
+        roles.some((allowedRole) => normalizeRole(role) === normalizeRole(allowedRole))
+      ) ?? false,
+    [user, normalizeRole]
   );
 
   const hasAllRoles = useCallback(
     (roles: Role[]) =>
-      roles.every((role) => user?.roles.includes(role)) ?? false,
-    [user]
+      roles.every((role) =>
+        user?.roles.some((item) => normalizeRole(item) === normalizeRole(role)) ?? false
+      ),
+    [user, normalizeRole]
   );
 
   const value = useMemo(

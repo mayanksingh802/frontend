@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { keyNameService } from "@/app/services/system-settings/keyNameService";
 import type { KeyName } from "@/app/types/system-settings/keyName";
+import { useListData } from "@/app/hooks/system-settings/useListData";
 
 interface UseKeyNamesReturn {
   keyNames: KeyName[];
@@ -12,27 +13,12 @@ interface UseKeyNamesReturn {
 }
 
 export function useKeyNames(): UseKeyNamesReturn {
-  const [keyNames, setKeyNames] = useState<KeyName[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const fetchKeyNames = useCallback(() => keyNameService.getKeyNames(), []);
 
-  const fetchKeyNames = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setKeyNames(await keyNameService.getKeyNames());
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to load key names."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { items: keyNames, loading, error, refresh } = useListData(
+    fetchKeyNames,
+    "Failed to load key names."
+  );
 
-  useEffect(() => {
-    void fetchKeyNames();
-  }, [fetchKeyNames]);
-
-  return { keyNames, loading, error, refresh: fetchKeyNames };
+  return { keyNames, loading, error, refresh };
 }
