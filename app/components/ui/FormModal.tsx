@@ -11,6 +11,8 @@ interface FormModalProps {
   saveLabel: string;
   children: ReactNode;
   saving?: boolean;
+  variant?: "center" | "right";
+  resizable?: boolean;
 }
 
 export default function FormModal({
@@ -21,6 +23,8 @@ export default function FormModal({
   saveLabel,
   children,
   saving = false,
+  variant = "center",
+  resizable = false,
 }: FormModalProps) {
   const formId = useId();
 
@@ -29,6 +33,8 @@ export default function FormModal({
       title={title}
       isOpen={isOpen}
       onClose={onClose}
+      variant={variant}
+      resizable={resizable}
       footer={
         <>
           <button

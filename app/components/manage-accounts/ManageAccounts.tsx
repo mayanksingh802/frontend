@@ -11,7 +11,14 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { ChangeEvent, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { organizationSetupSectionMap } from "@/app/config/organization-setup";
 import { useAuth } from "@/app/context/AuthContext";
@@ -19,6 +26,9 @@ import type { ManagementColumn } from "@/app/components/system-settings/Manageme
 import ManagementScreen from "@/app/components/system-settings/ManagementScreen";
 import FilterHeaderRow from "@/app/components/ui/FilterHeaderRow";
 import FormModal from "@/app/components/ui/FormModal";
+import Modal from "@/app/components/ui/Modal";
+import DepartmentManagement from "@/app/components/manage-accounts/DepartmentManagement";
+import OrganizationStructureManagement from "@/app/components/manage-accounts/OrganizationStructureManagement";
 
 type PolicyRow = {
   id: string;
@@ -43,10 +53,15 @@ const COMPANY_API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "http://192.168.1.121:5555";
 
 function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
-  const category =
-    String(item.category ?? item.policyCategory ?? item.type ?? "General");
+  const category = String(
+    item.category ?? item.policyCategory ?? item.type ?? "General",
+  );
   const name = String(
-    item.name ?? item.policyName ?? item.title ?? item.policyTitle ?? "Untitled Policy",
+    item.name ??
+      item.policyName ??
+      item.title ??
+      item.policyTitle ??
+      "Untitled Policy",
   );
   const version = String(item.version ?? item.policyVersion ?? "V1.0");
   const startDate = String(
@@ -58,7 +73,9 @@ function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
   const statusValue = String(item.status ?? "Draft");
 
   const normalizedStatus =
-    statusValue === "Active" || statusValue === "Draft" || statusValue === "Expired"
+    statusValue === "Active" ||
+    statusValue === "Draft" ||
+    statusValue === "Expired"
       ? statusValue
       : "Draft";
 
@@ -75,10 +92,18 @@ function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
 
 function normalizeCompanyRow(item: Record<string, unknown>): CompanyRow {
   const companyName = String(
-    item.companyName ?? item.company_name ?? item.name ?? item.company ?? "Unknown Company",
+    item.companyName ??
+      item.company_name ??
+      item.name ??
+      item.company ??
+      "Unknown Company",
   );
   const companyCode = String(
-    item.companyCode ?? item.company_code ?? item.code ?? item.companyCodeValue ?? "",
+    item.companyCode ??
+      item.company_code ??
+      item.code ??
+      item.companyCodeValue ??
+      "",
   );
   const domain = String(
     item.domain ?? item.companyDomain ?? item.emailDomain ?? item.website ?? "",
@@ -89,13 +114,20 @@ function normalizeCompanyRow(item: Record<string, unknown>): CompanyRow {
   const statusValue = String(item.status ?? "Active");
 
   return {
-    id: String(item.id ?? item.companyId ?? item.company_id ?? (companyCode || companyName)),
+    id: String(
+      item.id ??
+        item.companyId ??
+        item.company_id ??
+        (companyCode || companyName),
+    ),
     companyName,
     companyCode,
     domain,
     gstNumber,
     status:
-      statusValue === "Active" || statusValue === "Pending" || statusValue === "Inactive"
+      statusValue === "Active" ||
+      statusValue === "Pending" ||
+      statusValue === "Inactive"
         ? (statusValue as CompanyRow["status"])
         : "Active",
   };
@@ -115,20 +147,42 @@ export default function ManageAccounts() {
   const isSystemUser = hasAnyRole(["SYSTEM"]);
   const orgCode = user?.companyCode ?? "CORPIZ";
   const employeeId = user?.id ?? "";
+  const [profileCompanyCode, setProfileCompanyCode] = useState<string | null>(
+    orgCode,
+  );
+  const [companyDetails, setCompanyDetails] = useState<Record<
+    string,
+    any
+  > | null>(null);
   const [companyRows, setCompanyRows] = useState<CompanyRow[]>([]);
   const [companyLoading, setCompanyLoading] = useState(false);
-  const [organizationSelectedCompany, setOrganizationSelectedCompany] = useState("all");
+  const [organizationSelectedCompany, setOrganizationSelectedCompany] =
+    useState("all");
   const [policySelectedCompany, setPolicySelectedCompany] = useState("all");
   const [policyRows, setPolicyRows] = useState<PolicyRow[]>([]);
   const [policyLoading, setPolicyLoading] = useState(false);
   const [policyError, setPolicyError] = useState<string | null>(null);
-  const [selectedPolicyCategory, setSelectedPolicyCategory] = useState("all");
-  const [policyCategorySearch, setPolicyCategorySearch] = useState("");
-  const [isPolicyCategoryOpen, setIsPolicyCategoryOpen] = useState(false);
+  // const [selectedPolicyCategory, setSelectedPolicyCategory] = useState("all");
+  // const [policyCategorySearch, setPolicyCategorySearch] = useState("");
+  // const [isPolicyCategoryOpen, setIsPolicyCategoryOpen] = useState(false);
   const [isAddPolicyModalOpen, setIsAddPolicyModalOpen] = useState(false);
   const [isSavingPolicy, setIsSavingPolicy] = useState(false);
   const [policySaveError, setPolicySaveError] = useState<string | null>(null);
-
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+  const [addCompanyError, setAddCompanyError] = useState<string | null>(null);
+  const [showDepartments, setShowDepartments] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<CompanyRow | null>(
+    null,
+  );
+  const [companyToEdit, setCompanyToEdit] = useState<CompanyRow | null>(null);
+  const [companyToView, setCompanyToView] = useState<CompanyRow | null>(null);
+  const [isDeletingCompany, setIsDeletingCompany] = useState(false);
+  const [deleteCompanyError, setDeleteCompanyError] = useState<string | null>(
+    null,
+  );
+  const [isSavingCompanyEdit, setIsSavingCompanyEdit] = useState(false);
+  const [editCompanyError, setEditCompanyError] = useState<string | null>(null);
   const loadCompanies = async () => {
     setCompanyLoading(true);
 
@@ -145,7 +199,6 @@ export default function ManageAccounts() {
       }
 
       const payload = (await response.json()) as Record<string, unknown>;
-      console.log("[company fetch] payload:", payload);
       const dataArray = Array.isArray(payload)
         ? payload
         : Array.isArray(payload.data)
@@ -157,7 +210,9 @@ export default function ManageAccounts() {
               : [];
 
       const nextRows = dataArray.length
-        ? dataArray.map((item) => normalizeCompanyRow(item as Record<string, unknown>))
+        ? dataArray.map((item) =>
+            normalizeCompanyRow(item as Record<string, unknown>),
+          )
         : [];
 
       setCompanyRows(nextRows);
@@ -167,6 +222,138 @@ export default function ManageAccounts() {
       setCompanyLoading(false);
     }
   };
+
+  const loadCompanyProfile = async (code: string | null) => {
+    if (!code) return;
+
+    try {
+      // use configured backend base URL if available, otherwise fall back to same-origin
+      // call the local Next.js API proxy so requests go through server-side and include auth
+      const resp = await fetch(
+        `/api/company/code/${encodeURIComponent(code)}`,
+        {
+          headers: { Accept: "application/json" },
+        },
+      );
+      if (!resp.ok) {
+        console.warn("Company profile fetch failed", resp.status);
+        setCompanyDetails(null);
+        return;
+      }
+
+      const payload = await resp.json().catch(() => null);
+      if (!payload) {
+        setCompanyDetails(null);
+        return;
+      }
+
+      setCompanyDetails(payload);
+
+      // populate fields
+      if (payload.name) setOrganizationName(String(payload.name));
+      if (payload.code) setOrganizationSelectedCompany(String(payload.code));
+      // set logo if available (use thumb or full path)
+      const logoPath =
+        payload.thumbLogoFilePath ?? payload.logoFilePath ?? null;
+      if (logoPath) setLogo(String(logoPath));
+    } catch (err) {
+      console.error("Error loading company profile", err);
+      setCompanyDetails(null);
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!companyToDelete) return;
+
+    try {
+      setIsDeletingCompany(true);
+      setDeleteCompanyError(null);
+
+      const response = await fetch(
+        `/api/company/${encodeURIComponent(companyToDelete.id)}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(errorText || "Unable to delete company.");
+      }
+
+      setCompanyRows((rows) =>
+        rows.filter((row) => row.id !== companyToDelete.id),
+      );
+      setCompanyToDelete(null);
+    } catch (error) {
+      setDeleteCompanyError(
+        error instanceof Error ? error.message : "Unable to delete company.",
+      );
+    } finally {
+      setIsDeletingCompany(false);
+    }
+  };
+
+  const handleUpdateCompany = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!companyToEdit) return;
+
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const domain = String(formData.get("domain") ?? "").trim();
+    const gstNumber = String(formData.get("gstNumber") ?? "").trim();
+    const status = String(formData.get("status") ?? "Active");
+    const code = companyToEdit.companyCode;
+
+    if (!code || !name) {
+      setEditCompanyError("Company name is required.");
+      return;
+    }
+
+    try {
+      setIsSavingCompanyEdit(true);
+      setEditCompanyError(null);
+
+      const response = await fetch(
+        `/api/company/${encodeURIComponent(companyToEdit.id)}`,
+        {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code, name, domain, gstNumber, status }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(errorText || "Unable to update company.");
+      }
+
+      setCompanyRows((rows) =>
+        rows.map((row) =>
+          row.id === companyToEdit.id
+            ? {
+                ...row,
+                companyCode: code,
+                companyName: name,
+                domain,
+                gstNumber,
+                status: status as CompanyRow["status"],
+              }
+            : row,
+        ),
+      );
+      setCompanyToEdit(null);
+    } catch (error) {
+      setEditCompanyError(
+        error instanceof Error ? error.message : "Unable to update company.",
+      );
+    } finally {
+      setIsSavingCompanyEdit(false);
+    }
+  };
+
+  useEffect(() => {
+    // load company profile when profileCompanyCode changes
+    void loadCompanyProfile(profileCompanyCode);
+  }, [profileCompanyCode]);
 
   const resolvePolicyCompanyCode = (value = policySelectedCompany) => {
     if (isSystemUser && value !== "all") {
@@ -228,14 +415,18 @@ export default function ManageAccounts() {
                 ? payload.result
                 : [];
 
-      const nextRows = dataArray.map((item) => normalizePolicyRow(item as Record<string, unknown>));
+      const nextRows = dataArray.map((item) =>
+        normalizePolicyRow(item as Record<string, unknown>),
+      );
 
       setPolicyRows(nextRows);
       setPolicyError(null);
     } catch (error) {
       setPolicyRows([]);
       setPolicyError(
-        error instanceof Error ? error.message : "Unable to fetch policy records.",
+        error instanceof Error
+          ? error.message
+          : "Unable to fetch policy records.",
       );
     } finally {
       setPolicyLoading(false);
@@ -269,7 +460,10 @@ export default function ManageAccounts() {
     }
 
     if (uploadedFile instanceof File && uploadedFile.size > 0) {
-      if (uploadedFile.type && !uploadedFile.type.toLowerCase().includes("pdf")) {
+      if (
+        uploadedFile.type &&
+        !uploadedFile.type.toLowerCase().includes("pdf")
+      ) {
         setPolicySaveError("Only PDF files are allowed.");
         return;
       }
@@ -281,29 +475,61 @@ export default function ManageAccounts() {
 
       const payload = {
         companyCode: selectedCompanyCode,
+        // include both keys to be resilient to backend expectations
+        policyName: policyName,
         name: policyName,
         startDate,
         ...(endDate ? { endDate } : {}),
       };
 
       const hasFile = uploadedFile instanceof File && uploadedFile.size > 0;
-      const body = new FormData();
 
-      body.append("policy", JSON.stringify(payload));
+      let response: Response;
 
       if (hasFile) {
+        const body = new FormData();
+        body.append("request", JSON.stringify(payload));
         body.append("file", uploadedFile, uploadedFile.name);
+
+        response = await fetch("/api/company-policy/add", {
+          method: "POST",
+          body,
+        });
+      } else {
+        response = await fetch("/api/company-policy/add", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       }
 
-      const response = await fetch("/api/company-policy/add", {
-        method: "POST",
-        body,
-      });
-
-      const result = await response.json().catch(() => null);
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
+      }
 
       if (!response.ok) {
-        throw new Error(result?.message ?? "Unable to add policy.");
+        // Derive a helpful error message from common backend shapes
+        let errMsg = "Unable to add policy.";
+
+        if (result) {
+          if (typeof result.message === "string") errMsg = result.message;
+          else if (Array.isArray(result.message))
+            errMsg = result.message.join("; ");
+          else if (typeof result.error === "string") errMsg = result.error;
+          else if (Array.isArray(result.errors))
+            errMsg = result.errors
+              .map((e: any) => e.message || String(e))
+              .join("; ");
+          else if (result.detail) errMsg = String(result.detail);
+        } else if (response.statusText) {
+          errMsg = response.statusText;
+        }
+
+        setPolicySaveError(errMsg);
+        return;
       }
 
       setIsAddPolicyModalOpen(false);
@@ -319,7 +545,11 @@ export default function ManageAccounts() {
   };
 
   useEffect(() => {
-    if (activeSection !== "organization" && activeSection !== "organization-policy") {
+    if (
+      activeSection !== "organization" &&
+      activeSection !== "organization-policy" &&
+      activeSection !== "organization-setup"
+    ) {
       return;
     }
 
@@ -332,7 +562,14 @@ export default function ManageAccounts() {
     }
 
     void loadPolicies();
-  }, [activeSection, orgCode, policySelectedCompany, employeeId, isSystemUser, companyRows]);
+  }, [
+    activeSection,
+    orgCode,
+    policySelectedCompany,
+    employeeId,
+    isSystemUser,
+    companyRows,
+  ]);
 
   function uploadLogo(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -361,18 +598,18 @@ export default function ManageAccounts() {
     [companyRows],
   );
 
-  const filteredCompanyRows = useMemo(() => {
-    if (organizationSelectedCompany === "all") {
-      return companyRows;
-    }
+  // const filteredCompanyRows = useMemo(() => {
+  //   if (organizationSelectedCompany === "all") {
+  //     return companyRows;
+  //   }
 
-    return companyRows.filter(
-      (company) =>
-        company.id === organizationSelectedCompany ||
-        company.companyCode === organizationSelectedCompany ||
-        company.companyName === organizationSelectedCompany,
-    );
-  }, [companyRows, organizationSelectedCompany]);
+  //   return companyRows.filter(
+  //     (company) =>
+  //       company.id === organizationSelectedCompany ||
+  //       company.companyCode === organizationSelectedCompany ||
+  //       company.companyName === organizationSelectedCompany,
+  //   );
+  // }, [companyRows, organizationSelectedCompany]);
 
   const filteredPolicies = useMemo(() => {
     return policyRows;
@@ -380,6 +617,12 @@ export default function ManageAccounts() {
 
   const companyColumns = useMemo<ManagementColumn<CompanyRow>[]>(
     () => [
+      {
+        id: "serialNo",
+        label: "S.No.",
+        render: (_company, index) => (index ?? 0) + 1,
+        exportValue: (_company, index) => (index ?? 0) + 1,
+      },
       {
         id: "companyName",
         label: "Company Name",
@@ -393,18 +636,6 @@ export default function ManageAccounts() {
         exportValue: (company) => company.companyCode,
       },
       {
-        id: "domain",
-        label: "Domain",
-        render: (company) => company.domain,
-        exportValue: (company) => company.domain,
-      },
-      {
-        id: "gstNumber",
-        label: "GST Number",
-        render: (company) => company.gstNumber,
-        exportValue: (company) => company.gstNumber,
-      },
-      {
         id: "status",
         label: "Status",
         render: (company) => (
@@ -416,41 +647,30 @@ export default function ManageAccounts() {
         ),
         exportValue: (company) => company.status,
       },
-      {
-        id: "action",
-        label: "Action",
-        render: (company) => (
-          <div className="manage-accounts-policy-actions">
-            <button
-              type="button"
-              className="manage-accounts-policy-action-btn"
-              title="View"
-              aria-label={`View ${company.companyName}`}
-              onClick={() => console.log("View company", company.id)}
-            >
-              <Eye size={16} />
-            </button>
-            <button
-              type="button"
-              className="manage-accounts-policy-action-btn"
-              title="Edit"
-              aria-label={`Edit ${company.companyName}`}
-              onClick={() => console.log("Edit company", company.id)}
-            >
-              <PencilLine size={16} />
-            </button>
-          </div>
-        ),
-        exportValue: (company) => company.status,
-      },
     ],
     [],
   );
 
   const policyColumns = useMemo<ManagementColumn<PolicyRow>[]>(
     () => [
-      { id: "name", label: "Name", render: (policy) => policy.name, exportValue: (policy) => policy.name },
-      { id: "version", label: "Version", render: (policy) => policy.version, exportValue: (policy) => policy.version },
+      {
+        id: "serialNo",
+        label: "S.No.",
+        render: (_policy, index) => (index ?? 0) + 1,
+        exportValue: (_policy, index) => (index ?? 0) + 1,
+      },
+      {
+        id: "name",
+        label: "Name",
+        render: (policy) => policy.name,
+        exportValue: (policy) => policy.name,
+      },
+      {
+        id: "version",
+        label: "Version",
+        render: (policy) => policy.version,
+        exportValue: (policy) => policy.version,
+      },
       {
         id: "startDate",
         label: "Start Date",
@@ -475,42 +695,42 @@ export default function ManageAccounts() {
         ),
         exportValue: (policy) => policy.status,
       },
-      {
-        id: "action",
-        label: "Action",
-        render: (policy) => (
-          <div className="manage-accounts-policy-actions">
-            <button
-              type="button"
-              className="manage-accounts-policy-action-btn"
-              title="View"
-              aria-label={`View ${policy.name}`}
-              onClick={() => console.log("View policy", policy.id)}
-            >
-              <Eye size={16} />
-            </button>
-            <button
-              type="button"
-              className="manage-accounts-policy-action-btn"
-              title="Download"
-              aria-label={`Download ${policy.name}`}
-              onClick={() => console.log("Download policy", policy.id)}
-            >
-              <Download size={16} />
-            </button>
-            <button
-              type="button"
-              className="manage-accounts-policy-action-btn"
-              title="Update"
-              aria-label={`Update ${policy.name}`}
-              onClick={() => console.log("Update policy", policy.id)}
-            >
-              <PencilLine size={16} />
-            </button>
-          </div>
-        ),
-        exportValue: (policy) => policy.status,
-      },
+      // {
+      //   id: "action",
+      //   label: "Action",
+      //   render: (policy) => (
+      //     <div className="manage-accounts-policy-actions">
+      //       <button
+      //         type="button"
+      //         className="manage-accounts-policy-action-btn"
+      //         title="View"
+      //         aria-label={`View ${policy.name}`}
+      //         onClick={() => console.log("View policy", policy.id)}
+      //       >
+      //         <Eye size={16} />
+      //       </button>
+      //       <button
+      //         type="button"
+      //         className="manage-accounts-policy-action-btn"
+      //         title="Download"
+      //         aria-label={`Download ${policy.name}`}
+      //         onClick={() => console.log("Download policy", policy.id)}
+      //       >
+      //         <Download size={16} />
+      //       </button>
+      //       <button
+      //         type="button"
+      //         className="manage-accounts-policy-action-btn"
+      //         title="Update"
+      //         aria-label={`Update ${policy.name}`}
+      //         onClick={() => console.log("Update policy", policy.id)}
+      //       >
+      //         <PencilLine size={16} />
+      //       </button>
+      //     </div>
+      //   ),
+      //   exportValue: (policy) => policy.status,
+      // },
     ],
     [],
   );
@@ -521,25 +741,30 @@ export default function ManageAccounts() {
         <div className="manage-accounts-card">
           <div className="manage-accounts-policy-header-row">
             <div className="manage-accounts-policy-title-block">
-              <h1 className="manage-accounts-policy-title">Organization</h1>
+              <h1 className="manage-accounts-policy-title">Company</h1>
             </div>
           </div>
 
-          <div className="manage-accounts-policy-toolbar" style={{ marginBottom: 16 }}>
-            <FilterHeaderRow
-              title=""
-              value={organizationSelectedCompany}
-              options={companyOptions}
-              onChange={setOrganizationSelectedCompany}
-              searchPlaceholder="Search company or org"
-              emptyMessage="No company/org found."
-            />
+          <div
+            className="manage-accounts-policy-toolbar"
+            style={{ marginBottom: 16 }}
+          >
+            <div style={{ marginLeft: 8 }}>
+              <button
+                type="button"
+                className="manage-accounts-outline-button"
+                onClick={() => setShowDepartments((s) => !s)}
+              >
+                Departments
+              </button>
+            </div>
           </div>
 
           <ManagementScreen
             title="Company Details"
             entityName="Company"
-            items={filteredCompanyRows}
+            // items={filteredCompanyRows}
+            items={companyRows}
             columns={companyColumns}
             loading={companyLoading}
             error={null}
@@ -561,7 +786,10 @@ export default function ManageAccounts() {
                       throw new Error("Unable to fetch company records.");
                     }
 
-                    const payload = (await response.json()) as Record<string, unknown>;
+                    const payload = (await response.json()) as Record<
+                      string,
+                      unknown
+                    >;
                     const dataArray = Array.isArray(payload)
                       ? payload
                       : Array.isArray(payload.data)
@@ -573,7 +801,9 @@ export default function ManageAccounts() {
                             : [];
 
                     const nextRows = dataArray.length
-                      ? dataArray.map((item) => normalizeCompanyRow(item as Record<string, unknown>))
+                      ? dataArray.map((item) =>
+                          normalizeCompanyRow(item as Record<string, unknown>),
+                        )
                       : [];
 
                     setCompanyRows(nextRows);
@@ -587,7 +817,10 @@ export default function ManageAccounts() {
                 void loadCompanies();
               }
             }}
-            onAdd={() => console.log("Add company clicked")}
+            onAdd={() => setIsAddCompanyModalOpen(true)}
+            onView={(company) => setCompanyToView(company)}
+            onEdit={(company) => setCompanyToEdit(company)}
+            onDelete={(company) => setCompanyToDelete(company)}
             getRowId={(company) => company.id}
             getRowLabel={(company) => company.companyName}
             getSearchValues={(company) => [
@@ -600,7 +833,290 @@ export default function ManageAccounts() {
             emptyMessage="No company records available."
             showActions={true}
           />
+
+          <FormModal
+            title="Add Company"
+            isOpen={isAddCompanyModalOpen}
+            onClose={() => {
+              if (!isSavingCompany) {
+                setAddCompanyError(null);
+                setIsAddCompanyModalOpen(false);
+              }
+            }}
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const form = event.currentTarget as HTMLFormElement;
+              const formData = new FormData(form);
+
+              const code = String(formData.get("code") ?? "").trim();
+              const name = String(formData.get("name") ?? "").trim();
+              const websiteUrl = String(
+                formData.get("websiteUrl") ?? "",
+              ).trim();
+              const logoFile = formData.get("logoFile");
+
+              if (!code) {
+                setAddCompanyError("Company code is required.");
+                return;
+              }
+
+              if (!name) {
+                setAddCompanyError("Company name is required.");
+                return;
+              }
+
+              try {
+                setIsSavingCompany(true);
+                setAddCompanyError(null);
+
+                const payload = {
+                  code,
+                  name,
+                  thumbLogoFileName: null,
+                  thumbLogoFilePath: null,
+                  logoFileName: null,
+                  logoFilePath: null,
+                  websiteUrl: websiteUrl || null,
+                } as Record<string, any>;
+
+                let resp: Response;
+
+                if (logoFile instanceof File && logoFile.size > 0) {
+                  const body = new FormData();
+                  body.append("request", JSON.stringify(payload));
+                  body.append("file", logoFile, logoFile.name);
+
+                  resp = await fetch("/api/company/add", {
+                    method: "POST",
+                    body,
+                  });
+                } else {
+                  resp = await fetch("/api/company/add", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                }
+
+                let result: any = null;
+                try {
+                  result = await resp.json();
+                } catch {
+                  result = null;
+                }
+
+                if (!resp.ok) {
+                  let msg = "Unable to add company.";
+                  if (result) {
+                    if (typeof result.message === "string")
+                      msg = result.message;
+                    else if (result.detail) msg = String(result.detail);
+                  } else if (resp.statusText) {
+                    msg = resp.statusText;
+                  }
+
+                  setAddCompanyError(msg);
+                  return;
+                }
+
+                setIsAddCompanyModalOpen(false);
+                form.reset();
+                await loadCompanies();
+              } catch (err) {
+                setAddCompanyError(
+                  err instanceof Error ? err.message : String(err),
+                );
+              } finally {
+                setIsSavingCompany(false);
+              }
+            }}
+            saveLabel="Save Company"
+            saving={isSavingCompany}
+          >
+            {addCompanyError && (
+              <p className="app-form-error">{addCompanyError}</p>
+            )}
+
+            <label className="app-form-field">
+              <span>Company Code</span>
+              <input name="code" required />
+            </label>
+
+            <label className="app-form-field">
+              <span>Company Name</span>
+              <input name="name" required />
+            </label>
+
+            <label className="app-form-field">
+              <span>Website URL</span>
+              <input name="websiteUrl" placeholder="https://example.com" />
+            </label>
+
+            <label className="app-form-field">
+              <span>Logo (optional)</span>
+              <input type="file" name="logoFile" accept="image/*" />
+            </label>
+          </FormModal>
+
+          <Modal
+            title="Delete Company"
+            isOpen={Boolean(companyToDelete)}
+            onClose={() => {
+              if (!isDeletingCompany) {
+                setDeleteCompanyError(null);
+                setCompanyToDelete(null);
+              }
+            }}
+            footer={
+              <>
+                <button
+                  type="button"
+                  className="app-modal-cancel"
+                  onClick={() => {
+                    setDeleteCompanyError(null);
+                    setCompanyToDelete(null);
+                  }}
+                  disabled={isDeletingCompany}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="app-modal-save"
+                  onClick={handleDeleteCompany}
+                  disabled={isDeletingCompany}
+                >
+                  {isDeletingCompany ? "Deleting..." : "Delete"}
+                </button>
+              </>
+            }
+          >
+            {deleteCompanyError && (
+              <p className="app-form-error">{deleteCompanyError}</p>
+            )}
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{companyToDelete?.companyName}</strong> (
+              {companyToDelete?.companyCode})? This action cannot be undone.
+            </p>
+          </Modal>
+
+          <FormModal
+            title="Update Company"
+            isOpen={Boolean(companyToEdit)}
+            onClose={() => {
+              if (!isSavingCompanyEdit) {
+                setEditCompanyError(null);
+                setCompanyToEdit(null);
+              }
+            }}
+            onSubmit={handleUpdateCompany}
+            saveLabel="Update Company"
+            saving={isSavingCompanyEdit}
+          >
+            {editCompanyError && (
+              <p className="app-form-error">{editCompanyError}</p>
+            )}
+
+            <label className="app-form-field">
+              <span>Company Name</span>
+              <input
+                name="name"
+                defaultValue={companyToEdit?.companyName}
+                required
+              />
+            </label>
+
+            <label className="app-form-field">
+              <span>Domain</span>
+              <input name="domain" defaultValue={companyToEdit?.domain} />
+            </label>
+
+            <label className="app-form-field">
+              <span>GST Number</span>
+              <input
+                name="gstNumber"
+                defaultValue={companyToEdit?.gstNumber}
+              />
+            </label>
+
+            <label className="app-form-field">
+              <span>Status</span>
+              <select name="status" defaultValue={companyToEdit?.status}>
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
+          </FormModal>
+
+          <FormModal
+            title="View Company"
+            isOpen={Boolean(companyToView)}
+            onClose={() => setCompanyToView(null)}
+            onSubmit={() => setCompanyToView(null)}
+            saveLabel="Close"
+          >
+            <label className="app-form-field">
+              <span>Company Code</span>
+              <input value={companyToView?.companyCode ?? ""} disabled />
+            </label>
+
+            <label className="app-form-field">
+              <span>Company Name</span>
+              <input value={companyToView?.companyName ?? ""} disabled />
+            </label>
+
+            <label className="app-form-field">
+              <span>Domain</span>
+              <input value={companyToView?.domain ?? ""} disabled />
+            </label>
+
+            <label className="app-form-field">
+              <span>GST Number</span>
+              <input value={companyToView?.gstNumber ?? ""} disabled />
+            </label>
+
+            <label className="app-form-field">
+              <span>Status</span>
+              <input value={companyToView?.status ?? ""} disabled />
+            </label>
+          </FormModal>
+
+          {showDepartments && <DepartmentManagement />}
         </div>
+      </section>
+    );
+  }
+
+  if (activeSection === "departments") {
+    return (
+      <section className="manage-accounts-page">
+        <DepartmentManagement />
+      </section>
+    );
+  }
+
+  if (activeSection === "business-unit") {
+    return (
+      <section className="manage-accounts-page">
+        <OrganizationStructureManagement entity="business-unit" />
+      </section>
+    );
+  }
+
+  if (activeSection === "branch") {
+    return (
+      <section className="manage-accounts-page">
+        <OrganizationStructureManagement entity="branch" />
+      </section>
+    );
+  }
+
+  if (activeSection === "designations") {
+    return (
+      <section className="manage-accounts-page">
+        <OrganizationStructureManagement entity="designation" />
       </section>
     );
   }
@@ -630,7 +1146,9 @@ export default function ManageAccounts() {
             </div>
 
             {isSystemUser && policySelectedCompany === "all" ? (
-              <div className="manage-accounts-empty-state">Please select a company to view policy records.</div>
+              <div className="manage-accounts-empty-state">
+                Please select a company to view policy records.
+              </div>
             ) : (
               <ManagementScreen
                 title="Company Policy"
@@ -646,7 +1164,9 @@ export default function ManageAccounts() {
                     void loadPolicies();
                   }
                 }}
-                onAdd={isSystemUser ? () => setIsAddPolicyModalOpen(true) : undefined}
+                onAdd={
+                  isSystemUser ? () => setIsAddPolicyModalOpen(true) : undefined
+                }
                 getRowId={(policy) => policy.id}
                 getRowLabel={(policy) => policy.name}
                 getSearchValues={(policy) => [
@@ -677,7 +1197,9 @@ export default function ManageAccounts() {
           saveLabel="Save Policy"
           saving={isSavingPolicy}
         >
-          {policySaveError && <p className="app-form-error">{policySaveError}</p>}
+          {policySaveError && (
+            <p className="app-form-error">{policySaveError}</p>
+          )}
 
           <label className="app-form-field">
             <span>Policy Name</span>
@@ -723,12 +1245,25 @@ export default function ManageAccounts() {
       <div className="manage-accounts-card">
         <div className="manage-accounts-card-header">
           <div>
-            <h1>Company Profile</h1>
+            <h1>{companyDetails?.name ?? "Company Profile"}</h1>
             <p>
-              Company Code: <strong>CORPIZ</strong>
+              Company Code: <strong>{companyDetails?.code ?? orgCode}</strong>
             </p>
           </div>
-          <div className="manage-accounts-code">CORPIZ</div>
+          <div className="manage-accounts-code">
+            <select
+              value={profileCompanyCode ?? orgCode}
+              onChange={(e) => setProfileCompanyCode(e.target.value)}
+            >
+              {/* default option from current orgCode */}
+              <option value={orgCode}>{orgCode}</option>
+              {companyRows.map((c) => (
+                <option key={c.id} value={c.companyCode || c.id}>
+                  {c.companyName || c.companyCode || c.id}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="manage-accounts-logo-row">
@@ -837,12 +1372,66 @@ export default function ManageAccounts() {
         <button
           type="button"
           className="manage-accounts-save"
-          onClick={() => {
-            setSaved(true);
-            window.setTimeout(() => setSaved(false), 1800);
+          onClick={async () => {
+            if (isSavingCompany) return;
+
+            setIsSavingCompany(true);
+            setPolicySaveError(null);
+
+            try {
+              const selectedCode = profileCompanyCode ?? orgCode;
+
+              const payload = {
+                name: organizationName,
+                code: selectedCode,
+                domains,
+                gstRecords,
+              } as Record<string, unknown>;
+
+              const file = inputRef.current?.files?.[0];
+              let resp: Response;
+
+              if (file) {
+                const form = new FormData();
+                form.append("request", JSON.stringify(payload));
+                form.append("file", file, file.name);
+
+                resp = await fetch("/api/company/add", {
+                  method: "POST",
+                  body: form,
+                });
+              } else {
+                resp = await fetch("/api/company/add", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+              }
+
+              let result: any = null;
+              try {
+                result = await resp.json();
+              } catch {}
+
+              if (!resp.ok) {
+                const msg =
+                  result?.message ?? result?.error ?? "Unable to save company.";
+                setPolicySaveError(String(msg));
+                return;
+              }
+
+              setSaved(true);
+              window.setTimeout(() => setSaved(false), 1800);
+            } catch (err) {
+              setPolicySaveError(
+                err instanceof Error ? err.message : "Unable to save company.",
+              );
+            } finally {
+              setIsSavingCompany(false);
+            }
           }}
         >
-          {saved ? "Saved" : "Save Changes"}
+          {saved ? "Saved" : isSavingCompany ? "Saving..." : "Save Changes"}
         </button>
       </div>
     </section>

@@ -9,6 +9,8 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   footer?: ReactNode;
+  variant?: "center" | "right";
+  resizable?: boolean;
 }
 
 export default function Modal({
@@ -17,15 +19,23 @@ export default function Modal({
   isOpen,
   onClose,
   footer,
+  variant = "center",
+  resizable = false,
 }: ModalProps) {
   if (!isOpen) {
     return null;
   }
+  const backdropClass =
+    variant === "right" ? "app-modal-backdrop app-modal-backdrop--right" : "app-modal-backdrop";
+
+  const modalClass = `app-modal${variant === "right" ? " app-modal--right" : ""}${
+    resizable ? " resizable" : ""
+  }`;
 
   return (
-    <div className="app-modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={backdropClass} role="presentation" onMouseDown={onClose}>
       <section
-        className="app-modal"
+        className={modalClass}
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-modal-title"

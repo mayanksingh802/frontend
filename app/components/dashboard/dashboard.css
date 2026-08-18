@@ -973,10 +973,12 @@
 
 .manage-accounts-nav-item {
   min-height: 50px;
-  padding: 0 25px;
+  /* align text with child items */
+  padding: 0 25px 0 20px;
   border-radius: 0;
   text-decoration: none;
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  border-left: 3px solid transparent; /* reserve space for active left bar */
 }
 
 .manage-accounts-nav-item {
@@ -993,9 +995,13 @@
 
 .manage-accounts-nav-item.active,
 .manage-accounts-nav-children a.active {
-  background: #e3edf9;
+  background: #edf5ff;
   color: #0054cb;
   font-weight: 600;
+}
+
+.manage-accounts-nav-item.active {
+  border-left-color: #0054cb; /* show blue left bar for active parent */
 }
 
 .manage-accounts-nav-expandable {
@@ -1025,7 +1031,7 @@
   display: flex;
   align-items: center;
   min-height: 43px;
-  padding-left: 44px;
+  padding-left: 20px;
   text-decoration: none;
   border-left: 3px solid transparent;
 }
@@ -1344,7 +1350,7 @@
   min-width: 82px;
   padding: 6px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1710,7 +1716,7 @@
 .module-table th {
   height: 45px;
 
-  padding: 0 20px;
+  padding: 0 5px;
 
   text-align: left;
 
@@ -1726,12 +1732,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
+.module-table {
+  width: 100%;
+  table-layout: auto;
+}
+.module-table th:first-child,
+.module-table td:first-child {
+  width: 2%;
+  white-space: nowrap;
+  text-align: center;
+}
 
 .module-table td {
-  height: 55px;
+  height: 40px;
 
-  padding: 0 20px;
+  padding: 0 5px;
 
   color: #e2e8f0;
 
@@ -1967,6 +1982,31 @@
   background: var(--dark-surface);
   color: var(--text-primary);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+/* Right-side drawer variant */
+.app-modal-backdrop--right {
+  display: block;
+  background: rgba(8, 15, 30, 0.35);
+}
+
+.app-modal--right {
+  /* position: fixed; */
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: 0;
+  width: 420px;
+  max-width: 90vw;
+  height: 100vh;
+  border-radius: 10px 0 0 10px;
+  overflow: auto;
+  box-shadow: -8px 0 30px rgba(0,0,0,0.35);
+}
+
+.app-modal--right.resizable {
+  resize: horizontal;
+  overflow: auto;
 }
 
 .app-modal-header,

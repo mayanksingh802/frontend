@@ -16,7 +16,11 @@ export default function DashboardSidebar() {
   const { hasAnyRole } = useAuth();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const isOrganizationSetup = pathname.startsWith("/admin/organization-setup");
-  const manageSection = searchParams.get("section") ?? "organization-setup";
+  const paramSection = searchParams.get("section");
+  const manageSection =
+    paramSection ?? (pathname.startsWith("/admin/organization-setup") ? "organization-setup" : null);
+
+  
 
   useEffect(() => {
     if (!isOrganizationSetup) {
@@ -76,8 +80,23 @@ export default function DashboardSidebar() {
     section: (typeof organizationSetupSections)[number],
     depth = 0,
   ) => {
-    const isActive = manageSection === section.id;
-    const isExpandable = Boolean(section.children?.length);
+    // consider a section active when the resolved manageSection matches this section
+    // or any of its descendants (only when manageSection is present)
+    const descendantMatches = Boolean(
+      manageSection &&
+        section.children?.some((child) => {
+          if (child.id === manageSection) return true;
+          return child.children?.some((grandChild) => grandChild.id === manageSection) ?? false;
+        }),
+    );
+
+    // exact match used for applying `active` class so only one item highlights
+    const isActiveExact = Boolean(manageSection && manageSection === section.id);
+
+    const isActive = Boolean(manageSection && (manageSection === section.id || descendantMatches));
+    // Treat the top-level "organization" (Company) as a plain parent without a toggle
+    const isRootOrganization = section.id === "organization";
+    const isExpandable = !isRootOrganization && Boolean(section.children?.length);
     const isExpanded =
       Boolean(expandedSections[section.id]) ||
       (isExpandable &&
@@ -89,22 +108,18 @@ export default function DashboardSidebar() {
           return child.children?.some((grandChild) => grandChild.id === manageSection) ?? false;
         }));
 
+    // Indent only deeper nested groups (depth >= 2) so second-level children look like children
+    const groupMarginLeft = depth >= 2 ? 12 : 0;
+
     return (
-      <div key={section.id} className="manage-accounts-nav-group" style={{ marginLeft: depth > 0 ? 12 : 0 }}>
+      <div key={section.id} className="manage-accounts-nav-group" style={{ marginLeft: groupMarginLeft }}>
         {isExpandable ? (
           <button
             type="button"
             className={`manage-accounts-nav-item ${
-              isActive ? "active" : ""
+              isActiveExact ? "active" : ""
             } manage-accounts-nav-expandable`}
-            onClick={() => {
-              if (section.id === "organization") {
-                handleOrganizationSectionClick(section);
-                return;
-              }
-
-              toggleSection(section.id);
-            }}
+            onClick={() => toggleSection(section.id)}
             aria-expanded={isExpanded}
           >
             {section.label}
@@ -114,17 +129,19 @@ export default function DashboardSidebar() {
             />
           </button>
         ) : (
+          // Render root organization (Company) and other non-expandable sections as links
           <Link
             href={section.href ?? "/admin/organization-setup"}
             className={`manage-accounts-nav-item ${
-              isActive ? "active" : ""
+              isActiveExact ? "active" : ""
             }`}
           >
             {section.label}
           </Link>
         )}
 
-        {isExpandable && isExpanded && (
+        {/* Always render children for the root organization so there's no toggle */}
+        {(isRootOrganization || (isExpandable && isExpanded)) && (
           <div className="manage-accounts-nav-children">
             {section.children?.map((child) => renderSection(child, depth + 1))}
           </div>

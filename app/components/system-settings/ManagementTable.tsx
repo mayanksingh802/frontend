@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, View } from "lucide-react";
 
 export interface ManagementColumn<T> {
   id: string;
@@ -20,6 +20,7 @@ interface ManagementTableProps<T> {
   showActions?: boolean;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
+  onView?: (item: T) => void;
 }
 
 export default function ManagementTable<T>({
@@ -32,6 +33,7 @@ export default function ManagementTable<T>({
   showActions = false,
   onEdit,
   onDelete,
+  onView,
 }: ManagementTableProps<T>) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const hasActions = showActions || Boolean(onEdit || onDelete);
@@ -39,7 +41,6 @@ export default function ManagementTable<T>({
   if (loading) {
     return <div className="module-table-loading">Loading data...</div>;
   }
-
   return (
     <div className="module-table-wrapper">
       <table className="module-table">
@@ -82,6 +83,20 @@ export default function ManagementTable<T>({
 
                       {isMenuOpen && (
                         <div className="module-action-menu">
+                          {onView && (
+                            <button
+                              type="button"
+                              className="module-action-menu-item"
+                              onClick={() => {
+                                onView?.(item);
+                                setOpenMenuId(null);
+                              }}
+                              disabled={true}
+                            >
+                              <svg className="module-action-menu-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <span>View</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="module-action-menu-item"
@@ -91,8 +106,10 @@ export default function ManagementTable<T>({
                             }}
                           >
                             <Pencil size={18} />
-                            <span>Edit</span>
+                            <span>Update</span>
                           </button>
+
+                          
 
                           <button
                             type="button"

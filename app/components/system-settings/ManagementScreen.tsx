@@ -25,6 +25,7 @@ interface ManagementScreenProps<T> {
   onFilter?: () => void;
   onExport?: () => void;
   onAdd?: () => void;
+  onView?: (item: any) => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
 }
@@ -47,6 +48,7 @@ export default function ManagementScreen<T>({
   onFilter,
   onExport,
   onAdd,
+  onView,
   onEdit,
   onDelete,
 }: ManagementScreenProps<T>) {
@@ -92,7 +94,6 @@ export default function ManagementScreen<T>({
     if (!query) {
       return items;
     }
-
     return items.filter((item) =>
       getSearchValues(item).some((value) =>
         (value ?? "").toLowerCase().includes(query)
@@ -194,6 +195,7 @@ export default function ManagementScreen<T>({
         showActions={showActions && visibleColumnIds.has("action")}
         onEdit={onEdit}
         onDelete={onDelete}
+        onView={onView}
       />
     </div>
   );
