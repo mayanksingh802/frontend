@@ -35,6 +35,10 @@ export async function PUT(
     const body = await request.json().catch(() => null);
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const deptCode = typeof body?.code === "string" ? body.code.trim() : "";
+    const status = typeof body?.status === "string" ? body.status.trim() : "";
+    const remark = typeof body?.remark === "string" || body?.remark === null
+      ? body.remark
+      : undefined;
 
     if (!name) {
       return NextResponse.json(
@@ -52,7 +56,12 @@ export async function PUT(
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ name, ...(deptCode ? { code: deptCode } : {}) }),
+        body: JSON.stringify({
+          name,
+          ...(deptCode ? { code: deptCode } : {}),
+          ...(status ? { status } : {}),
+          ...(remark !== undefined ? { remark } : {}),
+        }),
         cache: "no-store",
       }
     );

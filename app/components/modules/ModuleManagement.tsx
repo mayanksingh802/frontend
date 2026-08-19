@@ -13,7 +13,7 @@ import type { Module } from "@/app/types/system-settings/module";
 const moduleColumns: ManagementColumn<Module>[] = [
   {
     id: "id",
-    label: "SERIAL",
+    label: "S.NO.",
     render: (_module, index) => (index ?? 0) + 1,
     exportValue: (_module, index) => (index ?? 0) + 1,
   },
@@ -210,7 +210,7 @@ export default function ModuleManagement() {
 
           <label className="app-form-field">
             <span>Module Code</span>
-            <input name="code" defaultValue={editingModule.code} required />
+            <input name="code" defaultValue={editingModule.code} disabled={true} required />
           </label>
 
           <label className="app-form-field">

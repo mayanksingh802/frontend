@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MoreVertical, Pencil, Trash2, View } from "lucide-react";
 
 export interface ManagementColumn<T> {
@@ -36,7 +36,28 @@ export default function ManagementTable<T>({
   onView,
 }: ManagementTableProps<T>) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openActionRef = useRef<HTMLDivElement>(null);
   const hasActions = showActions || Boolean(onEdit || onDelete);
+
+  useEffect(() => {
+    if (!openMenuId) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (openActionRef.current && !openActionRef.current.contains(target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [openMenuId]);
 
   if (loading) {
     return <div className="module-table-loading">Loading data...</div>;
@@ -68,7 +89,10 @@ export default function ManagementTable<T>({
 
                 {hasActions && (
                   <td className="module-table-action-column">
-                    <div className="module-action">
+                    <div
+                      ref={isMenuOpen ? openActionRef : null}
+                      className="module-action"
+                    >
                       <button
                         type="button"
                         className={`module-action-button ${

@@ -3,7 +3,14 @@ import { getSession } from "@/app/lib/auth/session";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+type DepartmentRouteContext = {
+  params: Promise<{ code: string }>;
+};
+
+export async function GET(
+  _request: Request,
+  { params }: DepartmentRouteContext,
+) {
   const session = await getSession();
 
   if (!session) {
@@ -22,14 +29,17 @@ export async function GET(req: Request) {
     );
   }
 
+  const { code } = await params;
+  const companyCode = code.trim();
+
+  if (!companyCode) {
+    return NextResponse.json(
+      { message: "Company code is required." },
+      { status: 400 },
+    );
+  }
+
   try {
-    const url = new URL(req.url);
-    const parts = url.pathname.split("/").filter(Boolean);
-    const code = parts[parts.length - 2] === "department" ? parts[parts.length - 3] : parts[parts.length - 1];
-
-    // fallback if simple extraction fails
-    const companyCode = code ?? "";
-
     const backendResponse = await fetch(`${backendUrl}/tms/api/${encodeURIComponent(companyCode)}/department`, {
       method: "GET",
       headers: {
@@ -55,7 +65,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(payload ?? [], { headers: { "x-proxied-to": backendUrl } });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { message: "Unable to reach the company service." },
       { status: 503, headers: { "x-proxied-to": String(process.env.BACKEND_API_BASE_URL ?? "") } },

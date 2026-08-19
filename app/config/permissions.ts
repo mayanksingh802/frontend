@@ -2,7 +2,7 @@ import type { Role } from "@/app/types/auth/auth";
 
 export const permissions = {
   systemSettings: [
-    // "SUPER_ADMIN",
+    "SUPER_ADMIN",
     "SYSTEM",
   ] as Role[],
 

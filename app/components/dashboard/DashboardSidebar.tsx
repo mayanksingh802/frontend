@@ -194,7 +194,9 @@ export default function DashboardSidebar() {
             const isActive =
               isOperations ||
               isHome ||
-              (pathname === item.href || pathname.startsWith(`${item.href}/`));
+              (item.href !== "/dashboard" &&
+                (pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`)));
 
             return (
               <Link

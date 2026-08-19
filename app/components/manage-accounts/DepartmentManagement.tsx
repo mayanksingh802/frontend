@@ -11,18 +11,18 @@ type DepartmentRow = {
   id: string;
   name: string;
   code: string;
-  manager?: string;
   status?: string;
+  remark?: string;
 };
 
 function normalizeDepartment(item: Record<string, unknown>): DepartmentRow {
   const id = String(item.id ?? item.departmentId ?? item.code ?? item.name ?? Math.random());
   const name = String(item.name ?? item.departmentName ?? item.deptName ?? "Untitled");
   const code = String(item.code ?? item.departmentCode ?? item.deptCode ?? "");
-  const manager = String(item.manager ?? item.head ?? "");
   const status = String(item.status ?? "Active");
+  const remark = String(item.remark ?? "");
 
-  return { id, name, code, manager, status };
+  return { id, name, code, status, remark };
 }
 
 export default function DepartmentManagement() {
@@ -185,6 +185,8 @@ export default function DepartmentManagement() {
     const form = new FormData(event.currentTarget as HTMLFormElement);
     const name = String(form.get("name") ?? "").trim();
     const code = String(form.get("code") ?? "").trim();
+    const status = String(form.get("status") ?? "ACTIVE").trim();
+    const remark = String(form.get("remark") ?? "").trim();
 
     if (!name) {
       setUpdateError("Department name is required.");
@@ -194,7 +196,7 @@ export default function DepartmentManagement() {
     try {
       setIsUpdating(true);
 
-      const payload: Record<string, unknown> = { name };
+      const payload: Record<string, unknown> = { name, status, remark: remark || null };
       if (code) payload.code = code;
 
       const resp = await fetch(
@@ -270,8 +272,22 @@ export default function DepartmentManagement() {
     },
     { id: "name", label: "Name", render: (d: DepartmentRow) => d.name, exportValue: (d: DepartmentRow) => d.name },
     { id: "code", label: "Code", render: (d: DepartmentRow) => d.code, exportValue: (d: DepartmentRow) => d.code },
-    { id: "manager", label: "Manager", render: (d: DepartmentRow) => d.manager ?? "", exportValue: (d: DepartmentRow) => d.manager ?? "" },
-    { id: "status", label: "Status", render: (d: DepartmentRow) => d.status ?? "", exportValue: (d: DepartmentRow) => d.status ?? "" },
+    {
+      id: "status",
+      label: "Status",
+      render: (d: DepartmentRow) => {
+        const status = d.status ?? "";
+
+        return (
+          <span
+            className={`manage-accounts-status manage-accounts-status-${status.toLowerCase()}`}
+          >
+            {status}
+          </span>
+        );
+      },
+      exportValue: (d: DepartmentRow) => d.status ?? "",
+    },
   ];
 
   return (
@@ -315,7 +331,7 @@ export default function DepartmentManagement() {
         onAdd={() => setIsAddOpen(true)}
         getRowId={(d: DepartmentRow) => d.id}
         getRowLabel={(d: DepartmentRow) => d.name}
-        getSearchValues={(d: DepartmentRow) => [d.name, d.code, d.manager, d.status]}
+        getSearchValues={(d: DepartmentRow) => [d.name, d.code, d.status]}
         emptyMessage="No departments found for this company."
         showActions={true}
         onEdit={(department: DepartmentRow) => {
@@ -339,12 +355,12 @@ export default function DepartmentManagement() {
         {addError && <div className="app-form-error">{addError}</div>}
 
         <label className="app-form-field">
-          <span>Name</span>
+          <span>Department Name</span>
           <input name="name" required />
         </label>
 
         <label className="app-form-field">
-          <span>Code</span>
+          <span>Department Code</span>
           <input name="code" />
         </label>
       </FormModal>
@@ -362,13 +378,30 @@ export default function DepartmentManagement() {
             {updateError && <div className="app-form-error">{updateError}</div>}
 
             <label className="app-form-field">
-              <span>Name</span>
+              <span>Department Name</span>
               <input name="name" defaultValue={editingDepartment.name} required />
             </label>
 
             <label className="app-form-field">
-              <span>Code</span>
-              <input name="code" defaultValue={editingDepartment.code} />
+              <span>Department Code</span>
+              <input
+                name="code"
+                defaultValue={editingDepartment.code}
+                readOnly
+              />
+            </label>
+
+            <label className="app-form-field">
+              <span>Status</span>
+              <select name="status" defaultValue={editingDepartment.status || "ACTIVE"}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </label>
+
+            <label className="app-form-field">
+              <span>Remark</span>
+              <textarea name="remark" rows={3} defaultValue={editingDepartment.remark ?? ""} />
             </label>
           </>
         )}

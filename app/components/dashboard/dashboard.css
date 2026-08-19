@@ -1361,7 +1361,12 @@
   color: #0d8d67;
 }
 
-.manage-accounts-status-draft {
+.manage-accounts-status-inactive {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.manage-accounts-status-draft { 
   background: rgba(7, 93, 204, 0.1);
   color: #0d5ac8;
 }
@@ -1732,13 +1737,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.module-table {
+/* .module-table {
   width: 100%;
   table-layout: auto;
-}
+} */
 .module-table th:first-child,
 .module-table td:first-child {
-  width: 2%;
+  /* width: 2%; */
+  width: 5%;
   white-space: nowrap;
   text-align: center;
 }
@@ -2014,7 +2020,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 15px 22px;
 }
 
 .app-modal-header {
@@ -2041,7 +2047,8 @@
 }
 
 .app-modal-body {
-  padding: 22px;
+  /* padding: 22px; */
+   padding: 14px;
 }
 
 .app-form-error {
@@ -2055,14 +2062,34 @@
 
 .app-form-field {
   display: grid;
-  gap: 8px;
-  margin-bottom: 18px;
+  /* gap: 8px; */
+  margin-bottom: 15px;
   color: var(--text-primary);
   font-size: 14px;
 }
 
 .app-form-field:last-child {
   margin-bottom: 0;
+}
+
+.policy-date-fields,
+.policy-file-status-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.policy-date-fields .app-form-field,
+.policy-file-status-fields .app-form-field {
+  margin-bottom: 15px;
+}
+
+@media (max-width: 520px) {
+  .policy-date-fields,
+  .policy-file-status-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 .app-form-field input,
@@ -2273,4 +2300,68 @@ html[data-theme="light"] {
   --text-secondary: #64748b;
 
   --green: #009b6b;
+}
+
+
+/* branch css */
+.branch-form {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.branch-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0px 5px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.branch-form-grid .app-form-field {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  margin-top:5px;
+}
+
+.branch-form-grid .app-form-field input,
+.branch-form-grid .app-form-field select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+
+}
+
+.branch-form-full {
+  grid-column: 1 / -1;
+}
+
+.branch-address-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.branch-form .app-form-error {
+  width: 100%;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 650px) {
+  .branch-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .branch-form-full {
+    grid-column: auto;
+  }
+
+  .branch-address-fields {
+    grid-template-columns: 1fr;
+  }
 }

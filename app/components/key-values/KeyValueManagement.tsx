@@ -61,7 +61,7 @@ export default function KeyValueManagement() {
 
   const handleAddKeyChange = (key: string) => {
     const existing = keyValues.find((kv) => kv.key === key);
-    setAddValue(existing?.value ?? "");
+    setAddValue("");
   };
 
   const handleEditKeyChange = (key: string) => {

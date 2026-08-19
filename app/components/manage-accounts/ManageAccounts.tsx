@@ -32,12 +32,16 @@ import OrganizationStructureManagement from "@/app/components/manage-accounts/Or
 
 type PolicyRow = {
   id: string;
+  companyCode: string;
   category: string;
   name: string;
   version: string;
   startDate: string;
   endDate: string;
-  status: "Active" | "Draft" | "Expired";
+  status: string;
+  remark: string;
+  fileName: string;
+  updatedOn: string;
 };
 
 type CompanyRow = {
@@ -70,23 +74,20 @@ function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
   const endDate = String(
     item.endDate ?? item.end_date ?? item.effectiveEndDate ?? "N/A",
   );
-  const statusValue = String(item.status ?? "Draft");
-
-  const normalizedStatus =
-    statusValue === "Active" ||
-    statusValue === "Draft" ||
-    statusValue === "Expired"
-      ? statusValue
-      : "Draft";
+  const statusValue = String(item.status ?? "DRAFT");
 
   return {
     id: String(item.id ?? `${name}-${version}-${startDate}`),
+    companyCode: String(item.companyCode ?? item.company_code ?? ""),
     category,
     name,
     version,
     startDate,
     endDate,
-    status: normalizedStatus as PolicyRow["status"],
+    status: statusValue,
+    remark: String(item.remark ?? ""),
+    fileName: String(item.fileName ?? item.file_name ?? ""),
+    updatedOn: String(item.updatedOn ?? item.updated_at ?? ""),
   };
 }
 
@@ -168,6 +169,13 @@ export default function ManageAccounts() {
   const [isAddPolicyModalOpen, setIsAddPolicyModalOpen] = useState(false);
   const [isSavingPolicy, setIsSavingPolicy] = useState(false);
   const [policySaveError, setPolicySaveError] = useState<string | null>(null);
+  const [policyToEdit, setPolicyToEdit] = useState<PolicyRow | null>(null);
+  const [isLoadingPolicyToEdit, setIsLoadingPolicyToEdit] = useState(false);
+  const [policyToDelete, setPolicyToDelete] = useState<PolicyRow | null>(null);
+  const [isDeletingPolicy, setIsDeletingPolicy] = useState(false);
+  const [policyDeleteError, setPolicyDeleteError] = useState<string | null>(
+    null,
+  );
   const [isSavingCompany, setIsSavingCompany] = useState(false);
   const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
   const [addCompanyError, setAddCompanyError] = useState<string | null>(null);
@@ -435,7 +443,8 @@ export default function ManageAccounts() {
 
   const handleAddPolicy = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
 
     const policyName = String(formData.get("policyName") ?? "").trim();
     const startDate = String(formData.get("startDate") ?? "").trim();
@@ -482,26 +491,17 @@ export default function ManageAccounts() {
         ...(endDate ? { endDate } : {}),
       };
 
-      const hasFile = uploadedFile instanceof File && uploadedFile.size > 0;
+      const body = new FormData();
+      body.append("request", JSON.stringify(payload));
 
-      let response: Response;
-
-      if (hasFile) {
-        const body = new FormData();
-        body.append("request", JSON.stringify(payload));
+      if (uploadedFile instanceof File && uploadedFile.size > 0) {
         body.append("file", uploadedFile, uploadedFile.name);
-
-        response = await fetch("/api/company-policy/add", {
-          method: "POST",
-          body,
-        });
-      } else {
-        response = await fetch("/api/company-policy/add", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        });
       }
+
+      const response = await fetch("/api/company-policy/add", {
+        method: "POST",
+        body,
+      });
 
       let result: any = null;
       try {
@@ -533,7 +533,7 @@ export default function ManageAccounts() {
       }
 
       setIsAddPolicyModalOpen(false);
-      event.currentTarget.reset();
+      formElement.reset();
       await loadPolicies();
     } catch (error) {
       setPolicySaveError(
@@ -541,6 +541,136 @@ export default function ManageAccounts() {
       );
     } finally {
       setIsSavingPolicy(false);
+    }
+  };
+
+  const openPolicyUpdate = async (policy: PolicyRow) => {
+    setPolicySaveError(null);
+    setPolicyToEdit(policy);
+    setIsLoadingPolicyToEdit(true);
+
+    try {
+      const response = await fetch(
+        `/api/company-policy/${encodeURIComponent(policy.id)}`,
+        { headers: { Accept: "application/json" } },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Unable to fetch policy details.");
+      }
+
+      const policyDetails =
+        payload?.data ?? payload?.result ?? payload;
+      setPolicyToEdit(normalizePolicyRow(policyDetails as Record<string, unknown>));
+    } catch (error) {
+      setPolicySaveError(
+        error instanceof Error ? error.message : "Unable to fetch policy details.",
+      );
+    } finally {
+      setIsLoadingPolicyToEdit(false);
+    }
+  };
+
+  const handleUpdatePolicy = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!policyToEdit || isSavingPolicy) return;
+
+    const formData = new FormData(event.currentTarget);
+    const companyCode = String(formData.get("companyCode") ?? "").trim();
+    const name = String(formData.get("policyName") ?? "").trim();
+    const startDate = String(formData.get("startDate") ?? "").trim();
+    const endDate = String(formData.get("endDate") ?? "").trim();
+    const status = String(formData.get("status") ?? "").trim();
+    const remark = String(formData.get("remark") ?? "").trim();
+    const uploadedFile = formData.get("policyFile");
+
+    if (!companyCode || !name || !startDate || !status) {
+      setPolicySaveError("Company code, policy name, start date and status are required.");
+      return;
+    }
+
+    if (
+      uploadedFile instanceof File &&
+      uploadedFile.size > 0 &&
+      uploadedFile.type &&
+      !uploadedFile.type.toLowerCase().includes("pdf")
+    ) {
+      setPolicySaveError("Only PDF files are allowed.");
+      return;
+    }
+
+    try {
+      setIsSavingPolicy(true);
+      setPolicySaveError(null);
+
+      const body = new FormData();
+      body.append(
+        "request",
+        JSON.stringify({
+          companyCode,
+          name,
+          startDate,
+          endDate: endDate || null,
+          status,
+          remark: remark || null,
+        }),
+      );
+      if (uploadedFile instanceof File && uploadedFile.size > 0) {
+        body.append("file", uploadedFile, uploadedFile.name);
+      }
+
+      const response = await fetch(
+        `/api/company-policy/${encodeURIComponent(policyToEdit.id)}`,
+        { method: "PUT", body },
+      );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message ?? "Unable to update policy.");
+      }
+
+      setPolicyToEdit(null);
+      await loadPolicies();
+    } catch (error) {
+      setPolicySaveError(
+        error instanceof Error ? error.message : "Unable to update policy.",
+      );
+    } finally {
+      setIsSavingPolicy(false);
+    }
+  };
+
+  const handleDeletePolicy = async () => {
+    if (!policyToDelete || isDeletingPolicy) {
+      return;
+    }
+
+    try {
+      setIsDeletingPolicy(true);
+      setPolicyDeleteError(null);
+
+      const response = await fetch(
+        `/api/company-policy/${encodeURIComponent(policyToDelete.id)}`,
+        {
+          method: "DELETE",
+          headers: { Accept: "application/json" },
+        },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Unable to delete policy.");
+      }
+
+      setPolicyToDelete(null);
+      await loadPolicies();
+    } catch (error) {
+      setPolicyDeleteError(
+        error instanceof Error ? error.message : "Unable to delete policy.",
+      );
+    } finally {
+      setIsDeletingPolicy(false);
     }
   };
 
@@ -1100,7 +1230,10 @@ export default function ManageAccounts() {
   if (activeSection === "business-unit") {
     return (
       <section className="manage-accounts-page">
-        <OrganizationStructureManagement entity="business-unit" />
+        <OrganizationStructureManagement
+          key="business-unit"
+          entity="business-unit"
+        />
       </section>
     );
   }
@@ -1108,7 +1241,7 @@ export default function ManageAccounts() {
   if (activeSection === "branch") {
     return (
       <section className="manage-accounts-page">
-        <OrganizationStructureManagement entity="branch" />
+        <OrganizationStructureManagement key="branch" entity="branch" />
       </section>
     );
   }
@@ -1116,7 +1249,10 @@ export default function ManageAccounts() {
   if (activeSection === "designations") {
     return (
       <section className="manage-accounts-page">
-        <OrganizationStructureManagement entity="designation" />
+        <OrganizationStructureManagement
+          key="designation"
+          entity="designation"
+        />
       </section>
     );
   }
@@ -1178,7 +1314,9 @@ export default function ManageAccounts() {
                   policy.status,
                 ]}
                 emptyMessage="No policy records available."
-                showActions={true}
+                showActions={isSystemUser}
+                onEdit={isSystemUser ? openPolicyUpdate : undefined}
+                onDelete={isSystemUser ? setPolicyToDelete : undefined}
               />
             )}
           </div>
@@ -1221,6 +1359,111 @@ export default function ManageAccounts() {
             <input type="file" name="policyFile" accept="application/pdf" />
           </label>
         </FormModal>
+
+        <FormModal
+          key={`${policyToEdit?.id ?? "new"}-${policyToEdit?.updatedOn ?? policyToEdit?.name ?? ""}`}
+          title="Update Policy"
+          isOpen={Boolean(policyToEdit)}
+          onClose={() => {
+            if (!isSavingPolicy) {
+              setPolicySaveError(null);
+              setPolicyToEdit(null);
+            }
+          }}
+          onSubmit={handleUpdatePolicy}
+          saveLabel="Update Policy"
+          saving={isSavingPolicy || isLoadingPolicyToEdit}
+        >
+          {policySaveError && <p className="app-form-error">{policySaveError}</p>}
+
+          <label className="app-form-field">
+            <span>Company Code</span>
+            <input name="companyCode" value={policyToEdit?.companyCode ?? ""} readOnly />
+          </label>
+
+          <label className="app-form-field">
+            <span>Policy Name</span>
+            <input name="policyName" defaultValue={policyToEdit?.name} required />
+          </label>
+
+          <div className="policy-date-fields">
+            <label className="app-form-field">
+              <span>Start Date</span>
+              <input type="date" name="startDate" defaultValue={policyToEdit?.startDate === "N/A" ? "" : policyToEdit?.startDate} required />
+            </label>
+
+            <label className="app-form-field">
+              <span>End Date</span>
+              <input type="date" name="endDate" defaultValue={policyToEdit?.endDate === "N/A" ? "" : policyToEdit?.endDate} />
+            </label>
+          </div>
+
+          <div className="policy-file-status-fields">
+            <label className="app-form-field">
+              <span>Policy File (PDF)</span>
+              <input type="file" name="policyFile" accept="application/pdf" />
+              {policyToEdit?.fileName && <small>Current file: {policyToEdit.fileName}</small>}
+            </label>
+
+            <label className="app-form-field">
+              <span>Status</span>
+              <select name="status" defaultValue={policyToEdit?.status || "ACTIVE"} required>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="DRAFT">Draft</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="app-form-field">
+            <span>Remark</span>
+            <textarea name="remark" defaultValue={policyToEdit?.remark} rows={3} />
+          </label>
+        </FormModal>
+
+        <Modal
+          title="Delete Policy"
+          isOpen={Boolean(policyToDelete)}
+          onClose={() => {
+            if (!isDeletingPolicy) {
+              setPolicyDeleteError(null);
+              setPolicyToDelete(null);
+            }
+          }}
+          footer={
+            <>
+              <button
+                type="button"
+                className="app-modal-cancel"
+                onClick={() => {
+                  setPolicyDeleteError(null);
+                  setPolicyToDelete(null);
+                }}
+                disabled={isDeletingPolicy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="app-modal-save"
+                onClick={handleDeletePolicy}
+                disabled={isDeletingPolicy}
+              >
+                {isDeletingPolicy ? "Deleting..." : "Delete"}
+              </button>
+            </>
+          }
+        >
+          {policyDeleteError && (
+            <p className="app-form-error">{policyDeleteError}</p>
+          )}
+          <p>
+            Are you sure you want to delete policy{" "}
+            <strong>&quot;{policyToDelete?.name}&quot;</strong>? This action
+            cannot be undone.
+          </p>
+        </Modal>
       </>
     );
   }

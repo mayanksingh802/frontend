@@ -24,19 +24,20 @@ export async function POST(request: Request) {
 
   try {
     const contentType = request.headers.get("content-type") ?? "";
+    const isMultipartRequest = contentType.includes("multipart/form-data");
     let body: Record<string, unknown> = {};
     let file: File | null = null;
 
-    if (contentType.includes("multipart/form-data")) {
+    if (isMultipartRequest) {
       const formData = await request.formData().catch(() => null);
       if (formData) {
-        const rawPolicy = formData.get("policy");
+        const rawRequest = formData.get("request");
         const rawFile = formData.get("file");
 
         file = rawFile instanceof File ? rawFile : null;
 
-        if (typeof rawPolicy === "string") {
-          body = (JSON.parse(rawPolicy) as Record<string, unknown>) ?? {};
+        if (typeof rawRequest === "string") {
+          body = (JSON.parse(rawRequest) as Record<string, unknown>) ?? {};
         }
       }
     } else if (contentType.includes("application/json")) {
@@ -55,15 +56,18 @@ export async function POST(request: Request) {
       );
     }
 
-    if (file) {
+    if (isMultipartRequest) {
       const upload = new FormData();
-      upload.append("policy", JSON.stringify({
+      upload.append("request", JSON.stringify({
         companyCode,
         name,
         startDate,
         ...(endDate ? { endDate } : {}),
       }));
-      upload.append("file", file, file.name);
+
+      if (file) {
+        upload.append("file", file, file.name);
+      }
 
       const backendResponse = await fetch(`${backendUrl}/tms/api/company-policy/add`, {
         method: "POST",
