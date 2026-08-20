@@ -54,7 +54,7 @@ type CompanyRow = {
 };
 
 const COMPANY_API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "http://192.168.1.121:5555";
+  process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "http://api-gateway:4446";
 
 function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
   const category = String(
