@@ -44,7 +44,7 @@ const sharedServices: ServiceHubItem[] = [
     icon: UsersRound,
     tone: "green",
     href: "/admin/organization-setup",
-    allowedRoles: permissions.systemSettings,
+    allowedRoles: permissions.manageAccounts,
   },
   { label: "Leave Tracker", icon: CalendarClock, tone: "blue" },
   { label: "Time Tracker", icon: Clock3, tone: "gold" },

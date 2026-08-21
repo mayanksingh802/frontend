@@ -6,6 +6,8 @@ import ManagementScreen from "@/app/components/system-settings/ManagementScreen"
 import { type ManagementColumn } from "@/app/components/system-settings/ManagementTable";
 import FormModal from "@/app/components/ui/FormModal";
 import Modal from "@/app/components/ui/Modal";
+import { useAuth } from "@/app/context/AuthContext";
+import { permissions } from "@/app/config/permissions"; 
 
 type DepartmentRow = {
   id: string;
@@ -42,6 +44,15 @@ export default function DepartmentManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+ const {user, hasAnyRole } = useAuth();
+  const companydropdown = hasAnyRole(
+  permissions.CompanyDropdown
+);
+
+const effectiveCompany = companydropdown
+  ? selectedCompany
+  : user?.companyCode ?? "";
+
   const loadCompanies = async () => {
     setCompanyLoading(true);
     try {
@@ -64,6 +75,9 @@ export default function DepartmentManagement() {
   };
 
   useEffect(() => {
+    if (!companydropdown) {
+    return;
+  }
     void loadCompanies();
   }, []);
 
@@ -112,18 +126,27 @@ export default function DepartmentManagement() {
     }
   };
 
+  // useEffect(() => {
+  //   void loadDepartments(selectedCompany);
+  // }, [selectedCompany]);
+
   useEffect(() => {
-    void loadDepartments(selectedCompany);
-  }, [selectedCompany]);
+  void loadDepartments(effectiveCompany);
+}, [effectiveCompany]);
 
   const handleAddSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAddError(null);
 
-    if (!selectedCompany || selectedCompany === "all") {
-      setAddError("Please select a company before adding a department.");
-      return;
-    }
+    // if (!selectedCompany || selectedCompany === "all") {
+    //   setAddError("Please select a company before adding a department.");
+    //   return;
+    // }
+
+    if (!effectiveCompany || effectiveCompany === "all") {
+  setAddError("Unable to determine the company.");
+  return;
+}
 
     const form = new FormData(event.currentTarget as HTMLFormElement);
     const name = String(form.get("name") ?? "").trim();
@@ -140,7 +163,8 @@ export default function DepartmentManagement() {
       const payload: Record<string, unknown> = { name };
       if (code) payload.code = code;
 
-      const resp = await fetch(`/api/company/${encodeURIComponent(selectedCompany)}/department/add`, {
+      // const resp = await fetch(`/api/company/${encodeURIComponent(selectedCompany)}/department/add`, {
+      const resp = await fetch(`/api/company/${encodeURIComponent(effectiveCompany)}/department/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
@@ -154,7 +178,9 @@ export default function DepartmentManagement() {
       }
 
       setIsAddOpen(false);
-      await loadDepartments(selectedCompany);
+      // await loadDepartments(selectedCompany);
+      await loadDepartments(effectiveCompany);
+      
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Unable to add department.");
     } finally {
@@ -173,10 +199,15 @@ export default function DepartmentManagement() {
     event.preventDefault();
     setUpdateError(null);
 
-    if (!selectedCompany || selectedCompany === "all") {
-      setUpdateError("Please select a company before updating a department.");
-      return;
-    }
+    // if (!selectedCompany || selectedCompany === "all") {
+    //   setUpdateError("Please select a company before updating a department.");
+    //   return;
+    // }
+
+    if (!effectiveCompany || effectiveCompany === "all") {
+  setUpdateError("Unable to determine the company.");
+  return;
+}
 
     if (!editingDepartment) {
       return;
@@ -200,7 +231,8 @@ export default function DepartmentManagement() {
       if (code) payload.code = code;
 
       const resp = await fetch(
-        `/api/company/${encodeURIComponent(selectedCompany)}/department/${encodeURIComponent(editingDepartment.id)}`,
+        // `/api/company/${encodeURIComponent(selectedCompany)}/department/${encodeURIComponent(editingDepartment.id)}`,
+        `/api/company/${encodeURIComponent(effectiveCompany)}/department/${encodeURIComponent(editingDepartment.id)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -216,7 +248,8 @@ export default function DepartmentManagement() {
       }
 
       setEditingDepartment(null);
-      await loadDepartments(selectedCompany);
+      // await loadDepartments(selectedCompany);
+      await loadDepartments(effectiveCompany);
     } catch (err) {
       setUpdateError(err instanceof Error ? err.message : "Unable to update department.");
     } finally {
@@ -229,17 +262,23 @@ export default function DepartmentManagement() {
       return;
     }
 
-    if (!selectedCompany || selectedCompany === "all") {
-      setDeleteError("Please select a company before deleting a department.");
-      return;
-    }
+    // if (!selectedCompany || selectedCompany === "all") {
+    //   setDeleteError("Please select a company before deleting a department.");
+    //   return;
+    // }
+
+    if (!effectiveCompany || effectiveCompany === "all") {
+  setDeleteError("Unable to determine the company.");
+  return;
+}
 
     try {
       setIsDeleting(true);
       setDeleteError(null);
 
       const resp = await fetch(
-        `/api/company/${encodeURIComponent(selectedCompany)}/department/${encodeURIComponent(department.id)}`,
+        // `/api/company/${encodeURIComponent(selectedCompany)}/department/${encodeURIComponent(department.id)}`,
+        `/api/company/${encodeURIComponent(effectiveCompany)}/department/${encodeURIComponent(department.id)}`,
         {
           method: "DELETE",
           headers: { Accept: "application/json" },
@@ -254,7 +293,8 @@ export default function DepartmentManagement() {
       }
 
       setDepartmentToDelete(null);
-      await loadDepartments(selectedCompany);
+      // await loadDepartments(selectedCompany);
+      await loadDepartments(effectiveCompany);
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "Unable to delete department.");
     } finally {
@@ -298,6 +338,7 @@ export default function DepartmentManagement() {
         </div>
 
         <div className="manage-accounts-policy-toolbar">
+           {companydropdown && (
           <FilterHeaderRow
             title=""
             value={selectedCompany}
@@ -305,7 +346,7 @@ export default function DepartmentManagement() {
             onChange={setSelectedCompany}
             searchPlaceholder="Search company or org"
             emptyMessage="No company/org found."
-          />
+          />)}
           <div style={{ marginLeft: 8 }}>
             <button
               type="button"
@@ -327,7 +368,8 @@ export default function DepartmentManagement() {
         error={error}
         showHeader={false}
         showSearch={true}
-        onRefresh={() => void loadDepartments(selectedCompany)}
+        // onRefresh={() => void loadDepartments(selectedCompany)}
+        onRefresh={() => void loadDepartments(effectiveCompany)}
         onAdd={() => setIsAddOpen(true)}
         getRowId={(d: DepartmentRow) => d.id}
         getRowLabel={(d: DepartmentRow) => d.name}

@@ -82,6 +82,13 @@ export default function DashboardSidebar() {
   ) => {
     // consider a section active when the resolved manageSection matches this section
     // or any of its descendants (only when manageSection is present)
+
+    if (
+    section.allowedRoles &&
+    !hasAnyRole(section.allowedRoles)
+  ) {
+    return null;
+  }
     const descendantMatches = Boolean(
       manageSection &&
         section.children?.some((child) => {
@@ -159,7 +166,7 @@ export default function DashboardSidebar() {
 
         <Link href="/dashboard/operations" className="manage-accounts-operations-link">
           <Settings size={21} />
-          Go to Settings
+          Back to Settings
         </Link>
       </aside>
     );

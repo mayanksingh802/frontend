@@ -1020,11 +1020,11 @@
   transform: rotate(180deg);
 }
 
-.manage-accounts-nav-children {
+/* .manage-accounts-nav-children {
   display: grid;
   gap: 0;
   padding: 4px 0 10px;
-}
+} */
 
 .manage-accounts-nav-children button,
 .manage-accounts-nav-children a {

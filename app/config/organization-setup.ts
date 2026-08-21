@@ -1,8 +1,12 @@
+import { Role } from "../types/auth/auth";
+import { permissions } from "./permissions";
+
 export interface OrganizationSetupSection {
   id: string;
   label: string;
   description: string;
   href?: string;
+  allowedRoles?: Role[];
   children?: OrganizationSetupSection[];
 }
 
@@ -12,53 +16,50 @@ export const organizationSetupSections: OrganizationSetupSection[] = [
     label: "Company",
     href: "/admin/organization-setup?section=organization",
     description: "Manage organization-level setup and related details.",
+    allowedRoles: permissions.organizationCompany,
+  },
+  {
+    id: "organization-setup",
+    label: "Company Details",
+    href: "/admin/organization-setup",
+    description:
+      "Manage the core profile, branding, company details, and primary organization information.",
+  },
+  {
+    id: "organization-policy",
+    label: "Company Policy",
+    href: "/admin/organization-setup?section=organization-policy",
+    description: "Define policies that apply across your organization.",
+  },
+  {
+    id: "organization-structure",
+    label: "Company Structure",
+    href: "/admin/organization-setup?section=organization-structure",
+    description: "Manage the structure of your organization.",
     children: [
       {
-        id: "organization-setup",
-        label: "Company Details",
-        href: "/admin/organization-setup",
-        description:
-          "Manage the core profile, branding, company details, and primary organization information.",
+        id: "business-unit",
+        label: "Business Unit",
+        href: "/admin/organization-setup?section=business-unit",
+        description: "Create and manage business units.",
       },
       {
-        id: "organization-policy",
-        label: "Company Policy",
-        href: "/admin/organization-setup?section=organization-policy",
-        description:
-          "Define policies that apply across your organization.",
+        id: "branch",
+        label: "Branch",
+        href: "/admin/organization-setup?section=branch",
+        description: "Create and manage branches.",
       },
       {
-        id: "organization-structure",
-        label: "Company Structure",
-        href: "/admin/organization-setup?section=organization-structure",
-        description:
-          "Manage the structure of your organization.",
-        children: [
-          {
-            id: "business-unit",
-            label: "Business Unit",
-            href: "/admin/organization-setup?section=business-unit",
-            description: "Create and manage business units.",
-          },
-          {
-            id: "branch",
-            label: "Branch",
-            href: "/admin/organization-setup?section=branch",
-            description: "Create and manage branches.",
-          },
-          {
-            id: "departments",
-            label: "Departments",
-            href: "/admin/organization-setup?section=departments",
-            description: "Create and manage departments.",
-          },
-          {
-            id: "designations",
-            label: "Designations",
-            href: "/admin/organization-setup?section=designations",
-            description: "Create and manage designations.",
-          },
-        ],
+        id: "departments",
+        label: "Departments",
+        href: "/admin/organization-setup?section=departments",
+        description: "Create and manage departments.",
+      },
+      {
+        id: "designations",
+        label: "Designations",
+        href: "/admin/organization-setup?section=designations",
+        description: "Create and manage designations.",
       },
     ],
   },
@@ -78,7 +79,9 @@ const flattenSections = (
   sections: OrganizationSetupSection[],
 ): Array<[string, OrganizationSetupSection]> =>
   sections.flatMap((section) => {
-    const entries: Array<[string, OrganizationSetupSection]> = [[section.id, section]];
+    const entries: Array<[string, OrganizationSetupSection]> = [
+      [section.id, section],
+    ];
 
     if (section.children?.length) {
       entries.push(...flattenSections(section.children));

@@ -15,7 +15,7 @@ import { keyValueService } from "@/app/services/system-settings/keyValueService"
 const keyValueColumns: ManagementColumn<KeyValue>[] = [
   {
     id: "id",
-    label: "SERIAL",
+    label: "S.No.",
     render: (_item, index) => (index ?? 0) + 1,
     exportValue: (_item, index) => (index ?? 0) + 1,
   },

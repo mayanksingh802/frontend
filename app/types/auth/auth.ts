@@ -11,6 +11,7 @@ export interface AuthUser {
   id: string;
   displayName: string;
   email: string;
+  companyName: string;
   companyCode: string;
   enabled: boolean;
   roles: Role[];

@@ -6,6 +6,8 @@ import type { ManagementColumn } from "@/app/components/system-settings/Manageme
 import FilterHeaderRow from "@/app/components/ui/FilterHeaderRow";
 import FormModal from "@/app/components/ui/FormModal";
 import Modal from "@/app/components/ui/Modal";
+import { useAuth } from "@/app/context/AuthContext";
+import { permissions } from "@/app/config/permissions";
 
 export type OrganizationStructureEntity =
   | "business-unit"
@@ -186,8 +188,16 @@ export default function OrganizationStructureManagement({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const structureRequestController = useRef<AbortController | null>(null);
+  const { user, hasAnyRole } = useAuth();
 
+    const companydropdown = hasAnyRole(
+  permissions.CompanyDropdown
+);
   useEffect(() => {
+if (!companydropdown) {
+    return;
+  }
+
     const controller = new AbortController();
 
     const loadCompanies = async () => {
@@ -1031,6 +1041,7 @@ export default function OrganizationStructureManagement({
         </div>
 
         <div className="manage-accounts-policy-toolbar">
+          {companydropdown && (
           <FilterHeaderRow
             title=""
             value={selectedCompany}
@@ -1039,6 +1050,7 @@ export default function OrganizationStructureManagement({
             searchPlaceholder="Search company or org"
             emptyMessage="No company/org found."
           />
+          )}
           <div style={{ marginLeft: 8 }}>
             <button
               type="button"

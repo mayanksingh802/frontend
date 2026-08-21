@@ -3,10 +3,7 @@
 import { useMemo, useState } from "react";
 import { Filter, Plus, Search } from "lucide-react";
 import Link from "next/link";
-import {
-  serviceHubs,
-  type ServiceHubItem,
-} from "@/app/config/service-hubs";
+import { serviceHubs, type ServiceHubItem } from "@/app/config/service-hubs";
 import { useAuth } from "@/app/context/AuthContext";
 
 interface ServiceHubProps {
@@ -34,7 +31,7 @@ function ServiceCard({ service }: { service: ServiceHubItem }) {
 
 export default function ServiceHub({ hub }: ServiceHubProps) {
   const config = serviceHubs[hub];
-  const { hasAnyRole } = useAuth();
+  const { user, hasAnyRole } = useAuth();
   const [query, setQuery] = useState("");
   const visibleServices = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -45,7 +42,7 @@ export default function ServiceHub({ hub }: ServiceHubProps) {
 
     return normalizedQuery
       ? allowedServices.filter((service) =>
-          service.label.toLowerCase().includes(normalizedQuery)
+          service.label.toLowerCase().includes(normalizedQuery),
         )
       : allowedServices;
   }, [config.services, hasAnyRole, query]);
@@ -53,19 +50,21 @@ export default function ServiceHub({ hub }: ServiceHubProps) {
   return (
     <section className="service-hub">
       <div className="service-hub-company-card">
-        <div className="service-hub-company-mark">TC</div>
+        <div className="service-hub-company-mark">{user?.companyName?.charAt(0).toUpperCase() ?? ""}</div>
         <div>
-          <h1>TechCushy Software Solutions Private Limited</h1>
+          <h1>
+            {user?.companyName}
+            {user?.companyCode && ` (${user.companyCode})`}
+          </h1>
           <div className="service-hub-license">
             <span>User License Usage</span>
-            <div aria-label="User license usage: 40%" className="service-hub-license-track">
+            <div
+              aria-label="User license usage: 40%"
+              className="service-hub-license-track"
+            >
               <span />
             </div>
           </div>
-        </div>
-        <div className="service-hub-account">
-          <strong>F49F1AE7 - System</strong>
-          <span>Super Administrator</span>
         </div>
       </div>
 
@@ -82,7 +81,11 @@ export default function ServiceHub({ hub }: ServiceHubProps) {
                 placeholder="Search services"
               />
             </label>
-            <button type="button" className="service-hub-filter" aria-label="Filter services">
+            <button
+              type="button"
+              className="service-hub-filter"
+              aria-label="Filter services"
+            >
               <Filter size={22} />
             </button>
           </div>

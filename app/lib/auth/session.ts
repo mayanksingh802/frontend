@@ -90,6 +90,7 @@ export function getSafeUser(response: LoginResponse): AuthUser {
     id: response.user.id,
     displayName: response.user.displayName,
     email: response.user.email,
+    companyName: response.user.companyName,
     companyCode: response.user.companyCode,
     enabled: response.user.enabled,
     roles: response.user.roles,

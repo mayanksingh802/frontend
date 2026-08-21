@@ -22,6 +22,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { organizationSetupSectionMap } from "@/app/config/organization-setup";
 import { useAuth } from "@/app/context/AuthContext";
+import { permissions } from "@/app/config/permissions";
 import type { ManagementColumn } from "@/app/components/system-settings/ManagementTable";
 import ManagementScreen from "@/app/components/system-settings/ManagementScreen";
 import FilterHeaderRow from "@/app/components/ui/FilterHeaderRow";
@@ -29,6 +30,7 @@ import FormModal from "@/app/components/ui/FormModal";
 import Modal from "@/app/components/ui/Modal";
 import DepartmentManagement from "@/app/components/manage-accounts/DepartmentManagement";
 import OrganizationStructureManagement from "@/app/components/manage-accounts/OrganizationStructureManagement";
+import UserManagement from "@/app/components/manage-accounts/UserManagement";
 
 type PolicyRow = {
   id: string;
@@ -52,9 +54,6 @@ type CompanyRow = {
   gstNumber: string;
   status: "Active" | "Pending" | "Inactive";
 };
-
-const COMPANY_API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "http://192.168.1.121:5555";
 
 function normalizePolicyRow(item: Record<string, unknown>): PolicyRow {
   const category = String(
@@ -140,13 +139,13 @@ export default function ManageAccounts() {
   const { user, hasAnyRole } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [logo, setLogo] = useState<string | null>(null);
-  const [organizationName, setOrganizationName] = useState("CORPIZ");
+  const [organizationName, setOrganizationName] = useState("");
   const [domainInput, setDomainInput] = useState("");
-  const [domains, setDomains] = useState(["corpiz.com"]);
+  const [domains, setDomains] = useState([""]);
   const [gstRecords, setGstRecords] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const isSystemUser = hasAnyRole(["SYSTEM"]);
-  const orgCode = user?.companyCode ?? "CORPIZ";
+  const orgCode = user?.companyCode ?? "";
   const employeeId = user?.id ?? "";
   const [profileCompanyCode, setProfileCompanyCode] = useState<string | null>(
     orgCode,
@@ -191,6 +190,11 @@ export default function ManageAccounts() {
   );
   const [isSavingCompanyEdit, setIsSavingCompanyEdit] = useState(false);
   const [editCompanyError, setEditCompanyError] = useState<string | null>(null);
+
+  const companydropdown = hasAnyRole(
+  permissions.CompanyDropdown
+);
+
   const loadCompanies = async () => {
     setCompanyLoading(true);
 
@@ -675,6 +679,10 @@ export default function ManageAccounts() {
   };
 
   useEffect(() => {
+
+      if (!companydropdown) {
+    return;
+  }
     if (
       activeSection !== "organization" &&
       activeSection !== "organization-policy" &&
@@ -1227,6 +1235,14 @@ export default function ManageAccounts() {
     );
   }
 
+  if (activeSection === "users") {
+    return (
+      <section className="manage-accounts-page">
+        <UserManagement />
+      </section>
+    );
+  }
+
   if (activeSection === "business-unit") {
     return (
       <section className="manage-accounts-page">
@@ -1267,7 +1283,7 @@ export default function ManageAccounts() {
                 <h1 className="manage-accounts-policy-title">Company Policy</h1>
               </div>
 
-              {isSystemUser && (
+              {companydropdown && (
                 <div className="manage-accounts-policy-toolbar">
                   <FilterHeaderRow
                     title=""
@@ -1281,7 +1297,7 @@ export default function ManageAccounts() {
               )}
             </div>
 
-            {isSystemUser && policySelectedCompany === "all" ? (
+            {companydropdown && policySelectedCompany === "all" ? (
               <div className="manage-accounts-empty-state">
                 Please select a company to view policy records.
               </div>

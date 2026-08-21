@@ -2,7 +2,23 @@ import type { Role } from "@/app/types/auth/auth";
 
 export const permissions = {
   systemSettings: [
+    // "SUPER_ADMIN",
+    "SYSTEM",
+  ] as Role[],
+
+  manageAccounts: [
+    "SYSTEM",
     "SUPER_ADMIN",
+    "TMS_ADMIN"
+  ] as Role[],
+
+  //Company in manage Accounts
+  organizationCompany: [
+    "SYSTEM",
+  ] as Role[],
+
+  //company dropdown
+  CompanyDropdown:[
     "SYSTEM",
   ] as Role[],
 
